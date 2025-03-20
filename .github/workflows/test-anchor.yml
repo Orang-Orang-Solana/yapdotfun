@@ -16,7 +16,6 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
           run_install: false
 
       - name: Install Node.js
@@ -30,7 +29,7 @@ jobs:
 
       - uses: metadaoproject/setup-anchor@v2
         with:
-          anchor-version: '0.30.1'
+          anchor-version: '0.31.0'
           node-version: '20'
           solana-cli-version: '1.18.9'
 
