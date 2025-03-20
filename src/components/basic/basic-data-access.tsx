@@ -1,10 +1,11 @@
 'use client'
 
-import { BASIC_PROGRAM_ID as programId, getBasicProgram } from '@project/anchor'
+import toast from 'react-hot-toast'
+
+import { getBasicProgram, BASIC_PROGRAM_ID as programId } from '@project/anchor'
 import { useConnection } from '@solana/wallet-adapter-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 
-import toast from 'react-hot-toast'
 import { useCluster } from '../cluster/cluster-data-access'
 import { useAnchorProvider } from '../solana/solana-provider'
 import { useTransactionToast } from '../ui/ui-layout'
@@ -18,7 +19,7 @@ export function useBasicProgram() {
 
   const getProgramAccount = useQuery({
     queryKey: ['get-program-account', { cluster }],
-    queryFn: () => connection.getParsedAccountInfo(programId),
+    queryFn: () => connection.getParsedAccountInfo(programId)
   })
 
   const greet = useMutation({
@@ -27,13 +28,13 @@ export function useBasicProgram() {
     onSuccess: (signature) => {
       transactionToast(signature)
     },
-    onError: () => toast.error('Failed to run program'),
+    onError: () => toast.error('Failed to run program')
   })
 
   return {
     program,
     programId,
     getProgramAccount,
-    greet,
+    greet
   }
 }

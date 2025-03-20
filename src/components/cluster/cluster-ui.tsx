@@ -1,14 +1,24 @@
 'use client'
 
+import { ReactNode, useState } from 'react'
+
 import { useConnection } from '@solana/wallet-adapter-react'
+import { Connection } from '@solana/web3.js'
 import { IconTrash } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
-import { ReactNode, useState } from 'react'
+
 import { AppModal } from '../ui/ui-layout'
 import { ClusterNetwork, useCluster } from './cluster-data-access'
-import { Connection } from '@solana/web3.js'
 
-export function ExplorerLink({ path, label, className }: { path: string; label: string; className?: string }) {
+export function ExplorerLink({
+  path,
+  label,
+  className
+}: {
+  path: string
+  label: string
+  className?: string
+}) {
   const { getExplorerUrl } = useCluster()
   return (
     <a
@@ -29,7 +39,7 @@ export function ClusterChecker({ children }: { children: ReactNode }) {
   const query = useQuery({
     queryKey: ['version', { cluster, endpoint: connection.rpcEndpoint }],
     queryFn: () => connection.getVersion(),
-    retry: 1,
+    retry: 1
   })
   if (query.isLoading) {
     return null
@@ -40,7 +50,10 @@ export function ClusterChecker({ children }: { children: ReactNode }) {
         <span>
           Error connecting to cluster <strong>{cluster.name}</strong>
         </span>
-        <button className="btn btn-xs btn-neutral" onClick={() => query.refetch()}>
+        <button
+          className="btn btn-xs btn-neutral"
+          onClick={() => query.refetch()}
+        >
           Refresh
         </button>
       </div>
@@ -56,7 +69,10 @@ export function ClusterUiSelect() {
       <label tabIndex={0} className="btn btn-primary rounded-btn">
         {cluster.name}
       </label>
-      <ul tabIndex={0} className="menu dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box w-52 mt-4">
+      <ul
+        tabIndex={0}
+        className="menu dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box w-52 mt-4"
+      >
         {clusters.map((item) => (
           <li key={item.name}>
             <button
@@ -72,7 +88,13 @@ export function ClusterUiSelect() {
   )
 }
 
-export function ClusterUiModal({ hideModal, show }: { hideModal: () => void; show: boolean }) {
+export function ClusterUiModal({
+  hideModal,
+  show
+}: {
+  hideModal: () => void
+  show: boolean
+}) {
   const { addCluster } = useCluster()
   const [name, setName] = useState('')
   const [network, setNetwork] = useState<ClusterNetwork | undefined>()
@@ -146,14 +168,22 @@ export function ClusterUiTable() {
                     {item?.active ? (
                       item.name
                     ) : (
-                      <button title="Select cluster" className="link link-secondary" onClick={() => setCluster(item)}>
+                      <button
+                        title="Select cluster"
+                        className="link link-secondary"
+                        onClick={() => setCluster(item)}
+                      >
                         {item.name}
                       </button>
                     )}
                   </span>
                 </div>
-                <span className="text-xs">Network: {item.network ?? 'custom'}</span>
-                <div className="whitespace-nowrap text-gray-500 text-xs">{item.endpoint}</div>
+                <span className="text-xs">
+                  Network: {item.network ?? 'custom'}
+                </span>
+                <div className="whitespace-nowrap text-gray-500 text-xs">
+                  {item.endpoint}
+                </div>
               </td>
               <td className="space-x-2 whitespace-nowrap text-center">
                 <button

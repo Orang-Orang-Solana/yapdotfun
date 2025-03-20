@@ -18,6 +18,6 @@ export type Basic = {
       discriminator: [203, 194, 3, 150, 228, 58, 181, 62]
       accounts: []
       args: []
-    },
+    }
   ]
 }

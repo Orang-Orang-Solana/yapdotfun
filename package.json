@@ -12,7 +12,7 @@
     "ci": "pnpm build",
     "start": "next start",
     "lint": "next lint",
-    "format:write": "prettier $(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g') --write --ignore-unknown --config .prettierrc",
+    "format": "prettier ./**/*.{ts,tsx} --write --ignore-unknown --config .prettierrc",
     "ui": "pnpm exec shadcn",
     "prepare": "husky"
   },

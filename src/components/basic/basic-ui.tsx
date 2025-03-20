@@ -6,7 +6,11 @@ export function BasicCreate() {
   const { greet } = useBasicProgram()
 
   return (
-    <button className="btn btn-xs lg:btn-md btn-primary" onClick={() => greet.mutateAsync()} disabled={greet.isPending}>
+    <button
+      className="btn btn-xs lg:btn-md btn-primary"
+      onClick={() => greet.mutateAsync()}
+      disabled={greet.isPending}
+    >
       Run program{greet.isPending && '...'}
     </button>
   )
@@ -21,7 +25,10 @@ export function BasicProgram() {
   if (!getProgramAccount.data?.value) {
     return (
       <div className="alert alert-info flex justify-center">
-        <span>Program account not found. Make sure you have deployed the program and are on the correct cluster.</span>
+        <span>
+          Program account not found. Make sure you have deployed the program and
+          are on the correct cluster.
+        </span>
       </div>
     )
   }

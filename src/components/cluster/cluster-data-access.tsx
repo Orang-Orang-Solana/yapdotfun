@@ -1,10 +1,11 @@
 'use client'
 
-import { clusterApiUrl, Connection } from '@solana/web3.js'
 import { atom, useAtomValue, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
-import { createContext, ReactNode, useContext } from 'react'
+import { ReactNode, createContext, useContext } from 'react'
 import toast from 'react-hot-toast'
+
+import { Connection, clusterApiUrl } from '@solana/web3.js'
 
 export interface Cluster {
   name: string
@@ -17,7 +18,7 @@ export enum ClusterNetwork {
   Mainnet = 'mainnet-beta',
   Testnet = 'testnet',
   Devnet = 'devnet',
-  Custom = 'custom',
+  Custom = 'custom'
 }
 
 // By default, we don't configure the mainnet-beta cluster
@@ -27,25 +28,31 @@ export const defaultClusters: Cluster[] = [
   {
     name: 'devnet',
     endpoint: clusterApiUrl('devnet'),
-    network: ClusterNetwork.Devnet,
+    network: ClusterNetwork.Devnet
   },
   { name: 'local', endpoint: 'http://localhost:8899' },
   {
     name: 'testnet',
     endpoint: clusterApiUrl('testnet'),
-    network: ClusterNetwork.Testnet,
-  },
+    network: ClusterNetwork.Testnet
+  }
 ]
 
-const clusterAtom = atomWithStorage<Cluster>('solana-cluster', defaultClusters[0])
-const clustersAtom = atomWithStorage<Cluster[]>('solana-clusters', defaultClusters)
+const clusterAtom = atomWithStorage<Cluster>(
+  'solana-cluster',
+  defaultClusters[0]
+)
+const clustersAtom = atomWithStorage<Cluster[]>(
+  'solana-clusters',
+  defaultClusters
+)
 
 const activeClustersAtom = atom<Cluster[]>((get) => {
   const clusters = get(clustersAtom)
   const cluster = get(clusterAtom)
   return clusters.map((item) => ({
     ...item,
-    active: item.name === cluster.name,
+    active: item.name === cluster.name
   }))
 })
 
@@ -64,7 +71,9 @@ export interface ClusterProviderContext {
   getExplorerUrl(path: string): string
 }
 
-const Context = createContext<ClusterProviderContext>({} as ClusterProviderContext)
+const Context = createContext<ClusterProviderContext>(
+  {} as ClusterProviderContext
+)
 
 export function ClusterProvider({ children }: { children: ReactNode }) {
   const cluster = useAtomValue(activeClusterAtom)
@@ -87,7 +96,8 @@ export function ClusterProvider({ children }: { children: ReactNode }) {
       setClusters(clusters.filter((item) => item.name !== cluster.name))
     },
     setCluster: (cluster: Cluster) => setCluster(cluster),
-    getExplorerUrl: (path: string) => `https://explorer.solana.com/${path}${getClusterUrlParam(cluster)}`,
+    getExplorerUrl: (path: string) =>
+      `https://explorer.solana.com/${path}${getClusterUrlParam(cluster)}`
   }
   return <Context.Provider value={value}>{children}</Context.Provider>
 }

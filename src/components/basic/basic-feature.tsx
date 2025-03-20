@@ -1,6 +1,7 @@
 'use client'
 
 import { useWallet } from '@solana/wallet-adapter-react'
+
 import { ExplorerLink } from '../cluster/cluster-ui'
 import { WalletButton } from '../solana/solana-provider'
 import { AppHero, ellipsify } from '../ui/ui-layout'
@@ -13,9 +14,15 @@ export default function BasicFeature() {
 
   return publicKey ? (
     <div>
-      <AppHero title="Basic" subtitle={'Run the program by clicking the "Run program" button.'}>
+      <AppHero
+        title="Basic"
+        subtitle={'Run the program by clicking the "Run program" button.'}
+      >
         <p className="mb-6">
-          <ExplorerLink path={`account/${programId}`} label={ellipsify(programId.toString())} />
+          <ExplorerLink
+            path={`account/${programId}`}
+            label={ellipsify(programId.toString())}
+          />
         </p>
         <BasicCreate />
       </AppHero>
