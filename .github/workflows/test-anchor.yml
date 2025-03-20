@@ -1,9 +1,13 @@
 name: Test and Build Anchor
 
 on:
-  pull_request:
   push:
-    branches: ['main']
+    branches: ['release/*']
+  pull_request:
+    branches: ['devel']
+
+env:
+  HUSKY: 0
 
 jobs:
   test-and-build:
@@ -29,7 +33,7 @@ jobs:
 
       - uses: metadaoproject/setup-anchor@v2
         with:
-          anchor-version: '0.31.0'
+          anchor-version: '0.30.1'
           node-version: '20'
           solana-cli-version: '1.18.9'
 
