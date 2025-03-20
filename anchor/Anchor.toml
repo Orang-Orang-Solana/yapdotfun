@@ -6,13 +6,13 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-basic = "4G6HJNp1zRyz9ZfFmxuRNqXVEy6EEmuwLHBhDsmPAXia"
+yapdotfun = "YappeTaxE8txMK7LwUuFBswCvnktievP7f3U5c5tZwB"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
@@ -25,5 +25,5 @@ upgradeable = false
 
 [test.validator]
 bind_address = "127.0.0.1"
-ledger = ".anchor/test-ledger"
+ledger = "../test-ledger"
 rpc_port = 8899
