@@ -14,16 +14,16 @@ export type Yapdotfun = {
   },
   "instructions": [
     {
-      "name": "initialize",
+      "name": "initializeMarket",
       "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
+        35,
+        35,
+        189,
+        193,
         155,
-        237
+        48,
+        170,
+        203
       ],
       "accounts": [
         {
@@ -227,14 +227,14 @@ export type Yapdotfun = {
             "docs": [
               "Total number of YES shares issued"
             ],
-            "type": "u8"
+            "type": "u64"
           },
           {
             "name": "totalNoShares",
             "docs": [
               "Total number of NO shares issued"
             ],
-            "type": "u8"
+            "type": "u64"
           },
           {
             "name": "totalRewards",

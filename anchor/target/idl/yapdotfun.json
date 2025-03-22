@@ -8,16 +8,16 @@
   },
   "instructions": [
     {
-      "name": "initialize",
+      "name": "initialize_market",
       "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
+        35,
+        35,
+        189,
+        193,
         155,
-        237
+        48,
+        170,
+        203
       ],
       "accounts": [
         {
@@ -221,14 +221,14 @@
             "docs": [
               "Total number of YES shares issued"
             ],
-            "type": "u8"
+            "type": "u64"
           },
           {
             "name": "total_no_shares",
             "docs": [
               "Total number of NO shares issued"
             ],
-            "type": "u8"
+            "type": "u64"
           },
           {
             "name": "total_rewards",

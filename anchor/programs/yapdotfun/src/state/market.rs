@@ -5,9 +5,9 @@ use anchor_lang::prelude::*;
 pub enum MarketStatus {
     /// Market is active and accepting bets (default state)
     #[default]
-    Open,
+    Open = 0x01,
     /// Market is closed and no longer accepting bets, ready for settlement
-    Closed,
+    Closed = 0x00,
 }
 
 #[account]
@@ -36,9 +36,9 @@ pub struct MarketMetadata {
     /// Total SOL invested in NO positions
     pub total_no_assets: u64,
     /// Total number of YES shares issued
-    pub total_yes_shares: u8,
+    pub total_yes_shares: u64,
     /// Total number of NO shares issued
-    pub total_no_shares: u8,
+    pub total_no_shares: u64,
     /// Total SOL in the rewards pool to be distributed to winners
     pub total_rewards: u64,
 }

@@ -1,27 +1,6 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 
-pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()> {
-    let market_account = &mut ctx.accounts.market;
-    let market_metadata_account = &mut ctx.accounts.market_metadata;
-
-    let default_market = Market::default();
-    market_account.description = description;
-    market_account.status = default_market.status;
-    market_account.answer = default_market.answer;
-    market_account.initializer = ctx.accounts.signer.key().to_owned();
-    market_account.metadata = default_market.metadata;
-
-    let default_market_metadata = MarketMetadata::default();
-    market_metadata_account.total_yes_assets = default_market_metadata.total_yes_assets;
-    market_metadata_account.total_no_assets = default_market_metadata.total_no_assets;
-    market_metadata_account.total_yes_shares = default_market_metadata.total_yes_shares;
-    market_metadata_account.total_no_shares = default_market_metadata.total_no_shares;
-    market_metadata_account.total_rewards = default_market_metadata.total_rewards;
-
-    Ok(())
-}
-
 #[derive(Accounts)]
 #[instruction(description: String)]
 /// Account structure for initializing a new prediction market
@@ -31,7 +10,7 @@ pub struct InitializeMarket<'info> {
     #[account(
         init,
         payer = signer,
-        space = Market::INIT_SPACE,
+        space = 8 + Market::INIT_SPACE,
         seeds = [
             b"market",
             description.as_bytes(),
@@ -46,7 +25,7 @@ pub struct InitializeMarket<'info> {
     #[account(
         init,
         payer = signer,
-        space = Market::INIT_SPACE,
+        space = 8 + MarketMetadata::INIT_SPACE,
         seeds = [
             b"market-metadata",
             description.as_bytes(),
@@ -62,4 +41,26 @@ pub struct InitializeMarket<'info> {
 
     /// The Solana System Program, required for creating new accounts
     pub system_program: Program<'info, System>,
+}
+
+pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()> {
+    let market_account = &mut ctx.accounts.market;
+    let default_market = Market::default();
+
+    market_account.description = description;
+    market_account.status = default_market.status;
+    market_account.answer = default_market.answer;
+    market_account.initializer = ctx.accounts.signer.key().to_owned();
+    market_account.metadata = ctx.accounts.market_metadata.key().to_owned();
+
+    let market_metadata_account = &mut ctx.accounts.market_metadata;
+    let default_market_metadata = MarketMetadata::default();
+
+    market_metadata_account.total_yes_assets = default_market_metadata.total_yes_assets;
+    market_metadata_account.total_no_assets = default_market_metadata.total_no_assets;
+    market_metadata_account.total_yes_shares = default_market_metadata.total_yes_shares;
+    market_metadata_account.total_no_shares = default_market_metadata.total_no_shares;
+    market_metadata_account.total_rewards = default_market_metadata.total_rewards;
+
+    Ok(())
 }
