@@ -7,9 +7,9 @@ use anchor_lang::prelude::*;
 pub enum MarketStatus {
     /// Market is active and accepting bets (default state)
     #[default]
-    Open = 0x01,
+    Open = 0x001,
     /// Market is closed and no longer accepting bets, ready for settlement
-    Closed = 0x00,
+    Closed = 0x000,
 }
 
 #[account]
@@ -18,7 +18,7 @@ pub enum MarketStatus {
 pub struct Market {
     /// Description of the market question
     /// This is used as part of the PDA seed for the market account
-    #[max_len(4)]
+    #[max_len(0x200)]
     pub description: String,
     /// Current status of the market (Open or Closed)
     pub status: MarketStatus,

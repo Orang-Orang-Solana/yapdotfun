@@ -28,19 +28,97 @@ export type Yapdotfun = {
       "accounts": [
         {
           "name": "market",
+          "docs": [
+            "The market account that will be updated"
+          ],
           "writable": true
         },
         {
           "name": "marketMetadata",
-          "writable": true
+          "docs": [
+            "The market metadata account that tracks voting statistics",
+            "This PDA is derived from the market account"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "marketVoter",
+          "docs": [
+            "A new account that will be initialized to track this user's vote",
+            "This PDA is derived from the voter's pubkey and the market"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  95,
+                  118,
+                  111,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
         },
         {
           "name": "signer",
+          "docs": [
+            "The user who is voting and paying for the transaction"
+          ],
           "writable": true,
           "signer": true
         },
         {
           "name": "systemProgram",
+          "docs": [
+            "The system program, used for transferring SOL"
+          ],
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -91,10 +169,6 @@ export type Yapdotfun = {
               {
                 "kind": "arg",
                 "path": "description"
-              },
-              {
-                "kind": "account",
-                "path": "signer"
               }
             ]
           }
@@ -103,7 +177,7 @@ export type Yapdotfun = {
           "name": "marketMetadata",
           "docs": [
             "The market metadata account that stores financial information about the market",
-            "PDA derived from \"market-metadata\", the market description, and the creator's public key"
+            "PDA derived from \"market_metadata\" and the market account's public key"
           ],
           "writable": true,
           "pda": {
@@ -117,7 +191,7 @@ export type Yapdotfun = {
                   107,
                   101,
                   116,
-                  45,
+                  95,
                   109,
                   101,
                   116,
@@ -129,12 +203,8 @@ export type Yapdotfun = {
                 ]
               },
               {
-                "kind": "arg",
-                "path": "description"
-              },
-              {
                 "kind": "account",
-                "path": "signer"
+                "path": "market"
               }
             ]
           }
@@ -189,6 +259,19 @@ export type Yapdotfun = {
         133,
         8
       ]
+    },
+    {
+      "name": "marketVoter",
+      "discriminator": [
+        246,
+        139,
+        153,
+        131,
+        204,
+        223,
+        234,
+        192
+      ]
     }
   ],
   "events": [
@@ -224,13 +307,18 @@ export type Yapdotfun = {
       "code": 6000,
       "name": "amountConstraintViolated",
       "msg": "Amount must be greater than 0"
+    },
+    {
+      "code": 6001,
+      "name": "marketClosed",
+      "msg": "Market has been closed"
     }
   ],
   "types": [
     {
       "name": "market",
       "docs": [
-        "Data Account for storing Market data"
+        "Main account that stores core information about a prediction market"
       ],
       "type": {
         "kind": "struct",
@@ -238,7 +326,8 @@ export type Yapdotfun = {
           {
             "name": "description",
             "docs": [
-              "Short description of the market question (limited to 4 characters)"
+              "Description of the market question",
+              "This is used as part of the PDA seed for the market account"
             ],
             "type": "string"
           },
@@ -256,7 +345,8 @@ export type Yapdotfun = {
           {
             "name": "answer",
             "docs": [
-              "Final outcome of the market (true for Yes, false for No)"
+              "Final outcome of the market (true for Yes, false for No)",
+              "This is set when the market is settled"
             ],
             "type": "bool"
           },
@@ -266,36 +356,47 @@ export type Yapdotfun = {
               "Public key of the account that created this market"
             ],
             "type": "pubkey"
-          },
-          {
-            "name": "metadata",
-            "docs": [
-              "Public key pointing to the associated MarketMetadata account"
-            ],
-            "type": "pubkey"
           }
         ]
       }
     },
     {
       "name": "marketClosedEvent",
+      "docs": [
+        "Event emitted when a prediction market is closed",
+        "",
+        "This event is triggered when a market's status is changed from Open to Closed,",
+        "indicating that it is no longer accepting bets and is ready for settlement."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "message",
+            "docs": [
+              "A human-readable message describing the event"
+            ],
             "type": "string"
           },
           {
             "name": "marketId",
+            "docs": [
+              "The public key of the closed market account, as a string"
+            ],
             "type": "string"
           },
           {
             "name": "marketMetadataId",
+            "docs": [
+              "The public key of the market's metadata account, as a string"
+            ],
             "type": "string"
           },
           {
             "name": "initializer",
+            "docs": [
+              "The public key of the account that closed the market, as a string"
+            ],
             "type": "string"
           }
         ]
@@ -303,23 +404,41 @@ export type Yapdotfun = {
     },
     {
       "name": "marketInitializedEvent",
+      "docs": [
+        "Event emitted when a new prediction market is initialized",
+        "",
+        "This event is triggered when the `initialize_market` instruction successfully",
+        "creates a new market and its associated metadata account."
+      ],
       "type": {
         "kind": "struct",
         "fields": [
           {
             "name": "message",
+            "docs": [
+              "A human-readable message describing the event"
+            ],
             "type": "string"
           },
           {
             "name": "marketId",
+            "docs": [
+              "The public key of the newly created market account, as a string"
+            ],
             "type": "string"
           },
           {
             "name": "marketMetadataId",
+            "docs": [
+              "The public key of the market metadata account, as a string"
+            ],
             "type": "string"
           },
           {
             "name": "initializer",
+            "docs": [
+              "The public key of the account that initialized the market, as a string"
+            ],
             "type": "string"
           }
         ]
@@ -328,7 +447,8 @@ export type Yapdotfun = {
     {
       "name": "marketMetadata",
       "docs": [
-        "Data Account for storing Market metadata"
+        "Account that stores financial information about a prediction market",
+        "PDA derived from \"market_metadata\" and the market account's public key"
       ],
       "type": {
         "kind": "struct",
@@ -336,35 +456,35 @@ export type Yapdotfun = {
           {
             "name": "totalYesAssets",
             "docs": [
-              "Total SOL invested in YES positions"
+              "Total SOL invested in YES positions (in lamports)"
             ],
             "type": "u64"
           },
           {
             "name": "totalNoAssets",
             "docs": [
-              "Total SOL invested in NO positions"
+              "Total SOL invested in NO positions (in lamports)"
             ],
             "type": "u64"
           },
           {
             "name": "totalYesShares",
             "docs": [
-              "Total number of YES shares issued"
+              "Total number of YES shares issued to participants"
             ],
             "type": "u64"
           },
           {
             "name": "totalNoShares",
             "docs": [
-              "Total number of NO shares issued"
+              "Total number of NO shares issued to participants"
             ],
             "type": "u64"
           },
           {
             "name": "totalRewards",
             "docs": [
-              "Total SOL in the rewards pool to be distributed to winners"
+              "Total SOL in the rewards pool to be distributed to winners (in lamports)"
             ],
             "type": "u64"
           }
@@ -384,6 +504,32 @@ export type Yapdotfun = {
           },
           {
             "name": "closed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketVoter",
+      "docs": [
+        "Account that tracks a user's vote on a specific market",
+        "PDA derived from \"market_voter\", the voter's public key, and the market account's public key"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "docs": [
+              "Amount of SOL (in lamports) that the user has invested"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "vote",
+            "docs": [
+              "The user's vote (true = YES, false = NO)"
+            ],
+            "type": "bool"
           }
         ]
       }

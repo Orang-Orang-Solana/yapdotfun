@@ -1,5 +1,17 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::hash::hash;
+
+pub trait StringExt {
+    fn to_hashed_bytes(&self) -> [u8; 32];
+}
+
+impl StringExt for String {
+    fn to_hashed_bytes(&self) -> [u8; 32] {
+        let hash = hash(self.as_bytes());
+        hash.to_bytes()
+    }
+}
 
 /// Accounts required for initializing a new prediction market
 #[derive(Accounts)]
@@ -10,7 +22,7 @@ pub struct InitializeMarket<'info> {
     #[account(
         init,
         payer = signer,
-        space = 8 + Market::INIT_SPACE,
+        space = 0x008 + Market::INIT_SPACE + description.as_bytes().len(),
         seeds = [
             b"market",
             description.as_bytes(),
@@ -24,7 +36,7 @@ pub struct InitializeMarket<'info> {
     #[account(
         init,
         payer = signer,
-        space = 8 + MarketMetadata::INIT_SPACE,
+        space = 0x008 + MarketMetadata::INIT_SPACE,
         seeds = [
             b"market_metadata",
             market.key().as_ref(),
