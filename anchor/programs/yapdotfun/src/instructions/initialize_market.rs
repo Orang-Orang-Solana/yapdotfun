@@ -1,9 +1,9 @@
 use crate::state::*;
 use anchor_lang::prelude::*;
 
+/// Accounts required for initializing a new prediction market
 #[derive(Accounts)]
 #[instruction(description: String)]
-/// Account structure for initializing a new prediction market
 pub struct InitializeMarket<'info> {
     /// The main market account that stores core market information
     /// PDA derived from "market", the market description, and the creator's public key
@@ -14,24 +14,22 @@ pub struct InitializeMarket<'info> {
         seeds = [
             b"market",
             description.as_bytes(),
-            signer.key().as_ref()
         ],
         bump,
     )]
     pub market: Account<'info, Market>,
 
     /// The market metadata account that stores financial information about the market
-    /// PDA derived from "market-metadata", the market description, and the creator's public key
+    /// PDA derived from "market_metadata" and the market account's public key
     #[account(
         init,
         payer = signer,
         space = 8 + MarketMetadata::INIT_SPACE,
         seeds = [
-            b"market-metadata",
-            description.as_bytes(),
-            signer.key().as_ref()
+            b"market_metadata",
+            market.key().as_ref(),
         ],
-        bump,
+        bump
     )]
     pub market_metadata: Account<'info, MarketMetadata>,
 
@@ -43,16 +41,32 @@ pub struct InitializeMarket<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Initializes a new prediction market with default values
+///
+/// This function creates a new market and its associated metadata account.
+/// It sets up the market with the provided description and initializes all
+/// financial metrics to zero.
+///
+/// # Arguments
+/// * `ctx` - The context containing all the accounts needed for initialization
+/// * `description` - A string describing what this prediction market is about
+///
+/// # Returns
+/// * `Result<()>` - Result indicating success or failure
+///
+/// # Events
+/// * `MarketInitializedEvent` - Emitted when a market is successfully initialized
 pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()> {
     let market_account = &mut ctx.accounts.market;
     let default_market = Market::default();
 
+    // Initialize market account with description and default values
     market_account.description = description;
     market_account.status = default_market.status;
     market_account.answer = default_market.answer;
     market_account.initializer = ctx.accounts.signer.key().to_owned();
-    market_account.metadata = ctx.accounts.market_metadata.key().to_owned();
 
+    // Initialize market metadata account with default values (all zeros)
     let market_metadata_account = &mut ctx.accounts.market_metadata;
     let default_market_metadata = MarketMetadata::default();
 
@@ -62,6 +76,7 @@ pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()
     market_metadata_account.total_no_shares = default_market_metadata.total_no_shares;
     market_metadata_account.total_rewards = default_market_metadata.total_rewards;
 
+    // Emit an event to notify listeners that a new market was created
     emit!(crate::MarketInitializedEvent {
         message: String::from("New market was initialized!"),
         market_id: market_account.key().to_string(),

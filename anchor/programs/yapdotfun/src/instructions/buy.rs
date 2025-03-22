@@ -1,29 +1,86 @@
 use crate::state::*;
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 
+/// Accounts required for the buy instruction
 #[derive(Accounts)]
 pub struct Buy<'info> {
+    /// The market account that will be updated
     #[account(mut)]
     pub market: Account<'info, Market>,
-    #[account(mut, address = market.metadata)]
+
+    /// The market metadata account that tracks voting statistics
+    /// This PDA is derived from the market account
+    #[account(
+        mut,
+        seeds = [
+            b"market_metadata",
+            market.key().as_ref()
+        ],
+        bump
+    )]
     pub market_metadata: Account<'info, MarketMetadata>,
+
+    /// A new account that will be initialized to track this user's vote
+    /// This PDA is derived from the voter's pubkey and the market
+    #[account(
+        init,
+        payer = signer,
+        space = 8 + MarketVoter::INIT_SPACE,
+        seeds = [
+            b"market_voter",
+            signer.key().as_ref(),
+            market.key().as_ref()
+        ],
+        bump
+    )]
+    pub market_voter: Account<'info, MarketVoter>,
+
+    /// The user who is voting and paying for the transaction
     #[account(mut)]
     pub signer: Signer<'info>,
+
+    /// The system program, used for transferring SOL
     pub system_program: Program<'info, System>,
 }
 
+/// Constant used for share calculation
+/// Represents the number of shares per SOL
 #[allow(dead_code)]
 const SHARES: f32 = 1e3;
 
+/// Buy instruction handler
+///
+/// This function allows a user to vote on a market by transferring SOL
+/// and receiving shares in return. Each user can only vote once per market.
+///
+/// # Arguments
+/// * `ctx` - The context of accounts
+/// * `bet` - Boolean indicating vote direction (true = YES, false = NO)
+/// * `amount` - Amount of SOL to transfer (in lamports)
+///
+/// # Returns
+/// * `Result<()>` - Result indicating success or failure
+///
+/// # Errors
+/// * `AmountConstraintViolated` - If the amount is zero or negative
+/// * `MarketClosed` - If the market is not in the Open state
 pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
+    // Ensure the amount is greater than zero
     require!(amount > 0, crate::YapdotfunError::AmountConstraintViolated);
+    require!(
+        ctx.accounts.market.status == crate::state::MarketStatus::Open,
+        crate::YapdotfunError::MarketClosed
+    );
 
+    // Transfer SOL from the signer to the market account
     let from = ctx.accounts.signer.to_account_info();
     let to = ctx.accounts.market.to_account_info();
     let _ = crate::transfer_sol(ctx.accounts.system_program.to_owned(), from, to, amount);
 
+    // Calculate shares based on the amount of SOL transferred
     let shares = (amount as f32 * LAMPORTS_PER_SOL as f32 / SHARES) as u64;
 
+    // Update market metadata based on the vote direction
     match bet {
         true => {
             let market_metadata_account = &mut ctx.accounts.market_metadata;
@@ -38,6 +95,11 @@ pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
             market_metadata_account.total_rewards += amount;
         }
     };
+
+    // Record the user's vote in the market_voter account
+    let market_voter_account = &mut ctx.accounts.market_voter;
+    market_voter_account.amount = amount;
+    market_voter_account.vote = bet;
 
     Ok(())
 }

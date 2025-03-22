@@ -1,9 +1,9 @@
 use anchor_lang::prelude::*;
 
-// TODO: Rethink the data structures make sure to store voter and make it efficient using zerocopy
+// TODO: make it efficient using zerocopy
 
 /// Represents the current status of a prediction market
-#[derive(AnchorDeserialize, AnchorSerialize, Clone, Default, InitSpace)]
+#[derive(AnchorDeserialize, AnchorSerialize, Clone, Default, InitSpace, PartialEq, Eq)]
 pub enum MarketStatus {
     /// Market is active and accepting bets (default state)
     #[default]
@@ -14,33 +14,45 @@ pub enum MarketStatus {
 
 #[account]
 #[derive(Default, InitSpace)]
-/// Data Account for storing Market data
+/// Main account that stores core information about a prediction market
 pub struct Market {
-    /// Short description of the market question (limited to 4 characters)
+    /// Description of the market question
+    /// This is used as part of the PDA seed for the market account
     #[max_len(4)]
     pub description: String,
     /// Current status of the market (Open or Closed)
     pub status: MarketStatus,
     /// Final outcome of the market (true for Yes, false for No)
+    /// This is set when the market is settled
     pub answer: bool,
     /// Public key of the account that created this market
     pub initializer: Pubkey,
-    /// Public key pointing to the associated MarketMetadata account
-    pub metadata: Pubkey,
 }
 
 #[account]
 #[derive(Default, InitSpace)]
-/// Data Account for storing Market metadata
+/// Account that stores financial information about a prediction market
+/// PDA derived from "market_metadata" and the market account's public key
 pub struct MarketMetadata {
-    /// Total SOL invested in YES positions
+    /// Total SOL invested in YES positions (in lamports)
     pub total_yes_assets: u64,
-    /// Total SOL invested in NO positions
+    /// Total SOL invested in NO positions (in lamports)
     pub total_no_assets: u64,
-    /// Total number of YES shares issued
+    /// Total number of YES shares issued to participants
     pub total_yes_shares: u64,
-    /// Total number of NO shares issued
+    /// Total number of NO shares issued to participants
     pub total_no_shares: u64,
-    /// Total SOL in the rewards pool to be distributed to winners
+    /// Total SOL in the rewards pool to be distributed to winners (in lamports)
     pub total_rewards: u64,
+}
+
+#[account]
+#[derive(Default, InitSpace)]
+/// Account that tracks a user's vote on a specific market
+/// PDA derived from "market_voter", the voter's public key, and the market account's public key
+pub struct MarketVoter {
+    /// Amount of SOL (in lamports) that the user has invested
+    pub amount: u64,
+    /// The user's vote (true = YES, false = NO)
+    pub vote: bool,
 }
