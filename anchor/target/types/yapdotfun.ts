@@ -14,19 +14,379 @@ export type Yapdotfun = {
   },
   "instructions": [
     {
-      "name": "initialize",
+      "name": "buy",
       "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
+        102,
+        6,
+        61,
+        18,
+        1,
+        218,
+        235,
+        234
       ],
-      "accounts": [],
-      "args": []
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "marketMetadata",
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "bet",
+          "type": "bool"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initializeMarket",
+      "discriminator": [
+        35,
+        35,
+        189,
+        193,
+        155,
+        48,
+        170,
+        203
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "docs": [
+            "The main market account that stores core market information",
+            "PDA derived from \"market\", the market description, and the creator's public key"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "description"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "marketMetadata",
+          "docs": [
+            "The market metadata account that stores financial information about the market",
+            "PDA derived from \"market-metadata\", the market description, and the creator's public key"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  45,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "description"
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "docs": [
+            "The account that is initializing the market and paying for account creation"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "The Solana System Program, required for creating new accounts"
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "description",
+          "type": "string"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "market",
+      "discriminator": [
+        219,
+        190,
+        213,
+        55,
+        0,
+        227,
+        198,
+        154
+      ]
+    },
+    {
+      "name": "marketMetadata",
+      "discriminator": [
+        12,
+        16,
+        109,
+        58,
+        31,
+        252,
+        133,
+        8
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "marketClosedEvent",
+      "discriminator": [
+        64,
+        193,
+        117,
+        138,
+        19,
+        11,
+        84,
+        44
+      ]
+    },
+    {
+      "name": "marketInitializedEvent",
+      "discriminator": [
+        70,
+        173,
+        96,
+        202,
+        100,
+        143,
+        45,
+        25
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "amountConstraintViolated",
+      "msg": "Amount must be greater than 0"
+    }
+  ],
+  "types": [
+    {
+      "name": "market",
+      "docs": [
+        "Data Account for storing Market data"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "description",
+            "docs": [
+              "Short description of the market question (limited to 4 characters)"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "docs": [
+              "Current status of the market (Open or Closed)"
+            ],
+            "type": {
+              "defined": {
+                "name": "marketStatus"
+              }
+            }
+          },
+          {
+            "name": "answer",
+            "docs": [
+              "Final outcome of the market (true for Yes, false for No)"
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "initializer",
+            "docs": [
+              "Public key of the account that created this market"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "metadata",
+            "docs": [
+              "Public key pointing to the associated MarketMetadata account"
+            ],
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketClosedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message",
+            "type": "string"
+          },
+          {
+            "name": "marketId",
+            "type": "string"
+          },
+          {
+            "name": "marketMetadataId",
+            "type": "string"
+          },
+          {
+            "name": "initializer",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketInitializedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message",
+            "type": "string"
+          },
+          {
+            "name": "marketId",
+            "type": "string"
+          },
+          {
+            "name": "marketMetadataId",
+            "type": "string"
+          },
+          {
+            "name": "initializer",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketMetadata",
+      "docs": [
+        "Data Account for storing Market metadata"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "totalYesAssets",
+            "docs": [
+              "Total SOL invested in YES positions"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalNoAssets",
+            "docs": [
+              "Total SOL invested in NO positions"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalYesShares",
+            "docs": [
+              "Total number of YES shares issued"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalNoShares",
+            "docs": [
+              "Total number of NO shares issued"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "totalRewards",
+            "docs": [
+              "Total SOL in the rewards pool to be distributed to winners"
+            ],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketStatus",
+      "docs": [
+        "Represents the current status of a prediction market"
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "open"
+          },
+          {
+            "name": "closed"
+          }
+        ]
+      }
     }
   ]
 };
