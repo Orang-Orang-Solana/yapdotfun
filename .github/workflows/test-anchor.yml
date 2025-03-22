@@ -46,6 +46,9 @@ jobs:
       - name: Check solana config
         run: solana config get
 
+      - run: cd anchor && rm Cargo.lock && cd ../
+        shell: bash
+
       - run: pnpm run anchor build
         shell: bash
 
