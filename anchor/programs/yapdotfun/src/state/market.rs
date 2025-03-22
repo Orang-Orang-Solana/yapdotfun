@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+// TODO: Rethink the data structures make sure to store voter and make it efficient using zerocopy
+
 /// Represents the current status of a prediction market
 #[derive(AnchorDeserialize, AnchorSerialize, Clone, Default, InitSpace)]
 pub enum MarketStatus {

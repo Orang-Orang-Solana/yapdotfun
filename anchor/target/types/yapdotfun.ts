@@ -14,6 +14,48 @@ export type Yapdotfun = {
   },
   "instructions": [
     {
+      "name": "buy",
+      "discriminator": [
+        102,
+        6,
+        61,
+        18,
+        1,
+        218,
+        235,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "marketMetadata",
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "bet",
+          "type": "bool"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "initializeMarket",
       "discriminator": [
         35,
@@ -149,6 +191,41 @@ export type Yapdotfun = {
       ]
     }
   ],
+  "events": [
+    {
+      "name": "marketClosedEvent",
+      "discriminator": [
+        64,
+        193,
+        117,
+        138,
+        19,
+        11,
+        84,
+        44
+      ]
+    },
+    {
+      "name": "marketInitializedEvent",
+      "discriminator": [
+        70,
+        173,
+        96,
+        202,
+        100,
+        143,
+        45,
+        25
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "amountConstraintViolated",
+      "msg": "Amount must be greater than 0"
+    }
+  ],
   "types": [
     {
       "name": "market",
@@ -196,6 +273,54 @@ export type Yapdotfun = {
               "Public key pointing to the associated MarketMetadata account"
             ],
             "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketClosedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message",
+            "type": "string"
+          },
+          {
+            "name": "marketId",
+            "type": "string"
+          },
+          {
+            "name": "marketMetadataId",
+            "type": "string"
+          },
+          {
+            "name": "initializer",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "marketInitializedEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "message",
+            "type": "string"
+          },
+          {
+            "name": "marketId",
+            "type": "string"
+          },
+          {
+            "name": "marketMetadataId",
+            "type": "string"
+          },
+          {
+            "name": "initializer",
+            "type": "string"
           }
         ]
       }

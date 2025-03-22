@@ -62,5 +62,12 @@ pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()
     market_metadata_account.total_no_shares = default_market_metadata.total_no_shares;
     market_metadata_account.total_rewards = default_market_metadata.total_rewards;
 
+    emit!(crate::MarketInitializedEvent {
+        message: String::from("New market was initialized!"),
+        market_id: market_account.key().to_string(),
+        market_metadata_id: market_metadata_account.key().to_string(),
+        initializer: ctx.accounts.signer.key().to_string()
+    });
+
     Ok(())
 }
