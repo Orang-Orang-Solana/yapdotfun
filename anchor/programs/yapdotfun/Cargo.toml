@@ -9,8 +9,11 @@ crate-type = ["cdylib", "lib"]
 name = "yapdotfun"
 
 [features]
+anchor-debug = []
 default = []
 cpi = ["no-entrypoint"]
+custom-heap = []
+custom-panic = []
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
