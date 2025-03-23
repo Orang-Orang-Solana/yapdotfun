@@ -144,7 +144,7 @@
           "name": "market",
           "docs": [
             "The main market account that stores core market information",
-            "PDA derived from \"market\", the market description, and the creator's public key"
+            "PDA derived from \"market\" and the hash of the market description"
           ],
           "writable": true
         },

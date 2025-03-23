@@ -2,11 +2,17 @@ use crate::state::*;
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::hash::hash;
 
+/// Extension trait for String to provide hashing functionality
 pub trait StringExt {
+    /// Converts a string to a hashed byte array
     fn to_hashed_bytes(&self) -> Vec<u8>;
 }
 
 impl StringExt for String {
+    /// Hashes the string using SHA-256 and returns the resulting bytes
+    ///
+    /// # Returns
+    /// * `Vec<u8>` - 32-byte hash of the string
     fn to_hashed_bytes(&self) -> Vec<u8> {
         let hash_value = hash(self.as_bytes());
         let hash = hash_value.to_bytes().to_vec();
@@ -20,7 +26,7 @@ impl StringExt for String {
 #[instruction(description: String)]
 pub struct InitializeMarket<'info> {
     /// The main market account that stores core market information
-    /// PDA derived from "market", the market description, and the creator's public key
+    /// PDA derived from "market" and the hash of the market description
     #[account(
         init,
         payer = signer,
@@ -59,7 +65,8 @@ pub struct InitializeMarket<'info> {
 ///
 /// This function creates a new market and its associated metadata account.
 /// It sets up the market with the provided description and initializes all
-/// financial metrics to zero.
+/// financial metrics to zero. The market is created with a unique PDA derived
+/// from the hash of the description, ensuring no duplicate markets can be created.
 ///
 /// # Arguments
 /// * `ctx` - The context containing all the accounts needed for initialization
@@ -70,6 +77,9 @@ pub struct InitializeMarket<'info> {
 ///
 /// # Events
 /// * `MarketInitializedEvent` - Emitted when a market is successfully initialized
+///
+/// # Errors
+/// * Will return Anchor error if PDA derivation fails or if account initialization fails
 pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()> {
     let market_account = &mut ctx.accounts.market;
     let default_market = Market::default();

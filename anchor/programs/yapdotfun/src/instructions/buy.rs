@@ -52,6 +52,7 @@ const SHARES: f32 = 1e3;
 ///
 /// This function allows a user to vote on a market by transferring SOL
 /// and receiving shares in return. Each user can only vote once per market.
+/// The PDA for the market_voter account ensures this constraint.
 ///
 /// # Arguments
 /// * `ctx` - The context of accounts
@@ -64,6 +65,7 @@ const SHARES: f32 = 1e3;
 /// # Errors
 /// * `AmountConstraintViolated` - If the amount is zero or negative
 /// * `MarketClosed` - If the market is not in the Open state
+/// * Will also return an Anchor error if the user tries to vote twice (PDA already exists)
 pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
     // Ensure the amount is greater than zero
     require!(amount > 0, crate::YapdotfunError::AmountConstraintViolated);
