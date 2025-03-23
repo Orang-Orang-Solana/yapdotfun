@@ -152,26 +152,7 @@ export type Yapdotfun = {
             "The main market account that stores core market information",
             "PDA derived from \"market\", the market description, and the creator's public key"
           ],
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  109,
-                  97,
-                  114,
-                  107,
-                  101,
-                  116
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "description"
-              }
-            ]
-          }
+          "writable": true
         },
         {
           "name": "marketMetadata",

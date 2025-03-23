@@ -25,7 +25,7 @@ pub struct Buy<'info> {
     #[account(
         init,
         payer = signer,
-        space = 8 + MarketVoter::INIT_SPACE,
+        space = 0x08 + MarketVoter::INIT_SPACE,
         seeds = [
             b"market_voter",
             signer.key().as_ref(),

@@ -3,13 +3,15 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::hash::hash;
 
 pub trait StringExt {
-    fn to_hashed_bytes(&self) -> [u8; 32];
+    fn to_hashed_bytes(&self) -> Vec<u8>;
 }
 
 impl StringExt for String {
-    fn to_hashed_bytes(&self) -> [u8; 32] {
-        let hash = hash(self.as_bytes());
-        hash.to_bytes()
+    fn to_hashed_bytes(&self) -> Vec<u8> {
+        let hash_value = hash(self.as_bytes());
+        let hash = hash_value.to_bytes().to_vec();
+        assert_eq!(hash.len(), 32);
+        hash
     }
 }
 
@@ -22,10 +24,10 @@ pub struct InitializeMarket<'info> {
     #[account(
         init,
         payer = signer,
-        space = 0x008 + Market::INIT_SPACE + description.as_bytes().len(),
+        space = 0x08 + Market::INIT_SPACE + &description.to_hashed_bytes()[..].len(),
         seeds = [
             b"market",
-            description.as_bytes(),
+            &description.to_hashed_bytes()[..],
         ],
         bump,
     )]
@@ -36,7 +38,7 @@ pub struct InitializeMarket<'info> {
     #[account(
         init,
         payer = signer,
-        space = 0x008 + MarketMetadata::INIT_SPACE,
+        space = 0x08 + MarketMetadata::INIT_SPACE,
         seeds = [
             b"market_metadata",
             market.key().as_ref(),

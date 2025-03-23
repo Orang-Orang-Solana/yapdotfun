@@ -1,4 +1,4 @@
-import macro from 'styled-jsx/macro'
+import * as crypto from 'crypto'
 
 import * as anchor from '@coral-xyz/anchor'
 import { Program } from '@coral-xyz/anchor'
@@ -14,7 +14,6 @@ describe('yapdotfun program', () => {
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
 
-  const userWallet = provider.wallet
   const user = provider.wallet.publicKey
 
   beforeEach(async () => {
@@ -29,9 +28,35 @@ describe('yapdotfun program', () => {
 
   const program = anchor.workspace.Yapdotfun as Program<Yapdotfun>
 
+  // Helper to hash the description string as done in the contract
+  const hashString = (str: string) => {
+    return crypto.createHash('sha256').update(str).digest()
+  }
+
   it('should initialize a market with a description', async () => {
-    const description = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-    const tx = await program.methods.initializeMarket(description).rpc()
+    const description = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+
+    // Find PDA for market
+    const [marketPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market'), hashString(description)],
+      program.programId
+    )
+
+    // Find PDA for market metadata
+    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    // Initialize market with all required accounts
+    const tx = await program.methods
+      .initializeMarket(description)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
     console.log('Initialized market. signature:', tx)
 
     const market = (await program.account.market.all())[0]
@@ -39,11 +64,42 @@ describe('yapdotfun program', () => {
     expect(marketData.description).toEqual(description)
   })
 
-  it('should error when initializing same description', async () => {
+  it('should error when initializing same description (PDA already in use)', async () => {
+    const description = 'will prabowo be... ??'
+
+    // Find PDA for market
+    const [marketPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market'), hashString(description)],
+      program.programId
+    )
+
+    // Find PDA for market metadata
+    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    // Initialize market first time
+    await program.methods
+      .initializeMarket(description)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
     try {
-      const description = 'will prabowo be... ??'
-      await program.methods.initializeMarket(description).rpc()
-      await program.methods.initializeMarket(description).rpc()
+      // Try to initialize with same description (should fail)
+      await program.methods
+        .initializeMarket(description)
+        .accounts({
+          market: marketPDA,
+          signer: user
+        })
+        .rpc()
+
+      // Should not reach here
+      throw new Error('Expected to fail with SendTransactionError')
     } catch (error) {
       expect(error).toBeInstanceOf(SendTransactionError)
     }
@@ -51,36 +107,44 @@ describe('yapdotfun program', () => {
 
   it('should buy a market and vote successfully once', async () => {
     const description = 'sssss'
-    const tx = await program.methods.initializeMarket(description).rpc()
-    console.log('tx', tx)
 
+    // Find PDA for market
     const [marketPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market'), Buffer.from(description)],
+      [Buffer.from('market'), hashString(description)],
       program.programId
     )
 
-    // const markets = await program.account.market.all()
-    // const marketPDA = markets.find(
-    //   (market) => market.account.description === description
-    // )?.publicKey
-
-    console.log('marketPDA', marketPDA)
-
-    if (!marketPDA) {
-      throw new Error('Market not found')
-    }
-
-    await program.methods
-      .buy(true, new anchor.BN(1))
-      .accounts({
-        market: marketPDA
-      })
-      .rpc()
-
+    // Find PDA for market metadata
     const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('market_metadata'), marketPDA.toBuffer()],
       program.programId
     )
+
+    // Initialize market
+    const tx = await program.methods
+      .initializeMarket(description)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    console.log('tx', tx)
+
+    // Find PDA for market voter
+    const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_voter'), user.toBuffer(), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    // Buy with YES and amount of 1 SOL
+    await program.methods
+      .buy(true, new anchor.BN(1))
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
 
     const marketMetadata =
       await program.account.marketMetadata.fetch(marketMetadataPDA)
@@ -88,6 +152,61 @@ describe('yapdotfun program', () => {
     expect(marketMetadata.totalYesShares.toString()).toEqual(
       expectedYesShares.toString()
     )
+
+    const marketVoter = await program.account.marketVoter.fetch(marketVoterPDA)
+    expect(marketVoter.amount.toString()).toEqual(new anchor.BN(1).toString())
+    expect(marketVoter.vote).toEqual(true)
   })
-  // it('should fail when a user tries to vote twice', async () => {})
+
+  it('should fail when a user tries to vote twice (PDA already in use)', async () => {
+    const description = 'sdaaaxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+
+    // Find PDA for market
+    const [marketPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market'), hashString(description)],
+      program.programId
+    )
+
+    // Find PDA for market metadata
+    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    // Initialize market
+    const tx = await program.methods
+      .initializeMarket(description)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    console.log('tx', tx)
+
+    // Try to vote again (should fail)
+    try {
+      // Buy with YES and amount of 1 SOL
+      await program.methods
+        .buy(true, new anchor.BN(1))
+        .accounts({
+          market: marketPDA,
+          signer: user
+        })
+        .rpc()
+
+      // Buy with YES and amount of 1 SOL
+      await program.methods
+        .buy(true, new anchor.BN(1))
+        .accounts({
+          market: marketPDA,
+          signer: user
+        })
+        .rpc()
+
+      console.info('should not reach here')
+    } catch (error) {
+      expect(error).toBeInstanceOf(SendTransactionError)
+    }
+  })
 })
