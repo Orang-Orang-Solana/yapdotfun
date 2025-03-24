@@ -2,9 +2,17 @@
 
 import { ReactNode, useState } from 'react'
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 import { useConnection } from '@solana/wallet-adapter-react'
 import { Connection } from '@solana/web3.js'
-import { IconTrash } from '@tabler/icons-react'
+import { IconTrash, IconWorld } from '@tabler/icons-react'
 import { useQuery } from '@tanstack/react-query'
 
 import { AppModal } from '../ui/ui-layout'
@@ -65,26 +73,44 @@ export function ClusterChecker({ children }: { children: ReactNode }) {
 export function ClusterUiSelect() {
   const { clusters, setCluster, cluster } = useCluster()
   return (
-    <div className="dropdown dropdown-end">
-      <label tabIndex={0} className="btn btn-primary rounded-btn">
-        {cluster.name}
-      </label>
-      <ul
-        tabIndex={0}
-        className="menu dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box w-52 mt-4"
-      >
+    // <div className="dropdown dropdown-end">
+    //   <label tabIndex={0} className="btn btn-primary rounded-btn">
+    //     {cluster.name}
+    //   </label>
+    //   <ul
+    //     tabIndex={0}
+    //     className="menu dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box w-52 mt-4"
+    //   >
+    //     {clusters.map((item) => (
+    //       <li key={item.name}>
+    //         <button
+    //           className={`btn btn-sm ${item.active ? 'btn-primary' : 'btn-ghost'}`}
+    //           onClick={() => setCluster(item)}
+    //         >
+    //           {item.name}
+    //         </button>
+    //       </li>
+    //     ))}
+    //   </ul>
+    // </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger className="capitalize text-sm flex items-center gap-1">
+        <IconWorld strokeWidth={1} /> {cluster.name} Network
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuLabel>Change Network</DropdownMenuLabel>
+        <DropdownMenuSeparator />
         {clusters.map((item) => (
-          <li key={item.name}>
-            <button
-              className={`btn btn-sm ${item.active ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => setCluster(item)}
-            >
-              {item.name}
-            </button>
-          </li>
+          <DropdownMenuItem
+            key={item.name}
+            onClick={() => setCluster(item)}
+            className="capitalize"
+          >
+            {item.name} Network
+          </DropdownMenuItem>
         ))}
-      </ul>
-    </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
