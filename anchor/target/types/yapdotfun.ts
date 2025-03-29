@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/yapdotfun.json`.
  */
 export type Yapdotfun = {
-  "address": "YappeTaxE8txMK7LwUuFBswCvnktievP7f3U5c5tZwB",
+  "address": "4tsFN1tukaM3Jm4x9EPpAKCWQXibwaCzwmsvmuodGK5D",
   "metadata": {
     "name": "yapdotfun",
     "version": "0.1.0",
@@ -212,6 +212,126 @@ export type Yapdotfun = {
           "type": "string"
         }
       ]
+    },
+    {
+      "name": "sell",
+      "discriminator": [
+        51,
+        230,
+        133,
+        164,
+        1,
+        127,
+        131,
+        173
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "docs": [
+            "The market account that will be updated"
+          ],
+          "writable": true
+        },
+        {
+          "name": "marketMetadata",
+          "docs": [
+            "The market metadata account that tracks voting statistics",
+            "This PDA is derived from the market account"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "marketVoter",
+          "docs": [
+            "The market voter account that tracks the user's vote",
+            "This PDA is derived from the voter's pubkey and the market"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  95,
+                  118,
+                  111,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "signer",
+          "docs": [
+            "The user who is selling their shares"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "The system program, used for transferring SOL"
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "bet",
+          "type": "bool"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -293,6 +413,31 @@ export type Yapdotfun = {
       "code": 6001,
       "name": "marketClosed",
       "msg": "Market has been closed"
+    },
+    {
+      "code": 6002,
+      "name": "marketNotClosed",
+      "msg": "Market is not closed"
+    },
+    {
+      "code": 6003,
+      "name": "marketDoesNotExist",
+      "msg": "Market doesn't exist"
+    },
+    {
+      "code": 6004,
+      "name": "notEnoughShares",
+      "msg": "Not enough shares"
+    },
+    {
+      "code": 6005,
+      "name": "notOracle",
+      "msg": "Caller is not oracle"
+    },
+    {
+      "code": 6006,
+      "name": "noSharesToSell",
+      "msg": "No shares to sell"
     }
   ],
   "types": [

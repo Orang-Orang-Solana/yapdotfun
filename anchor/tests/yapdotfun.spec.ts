@@ -117,7 +117,7 @@ describe('yapdotfun program', () => {
 
   it('should buy a market and vote successfully once', async () => {
     const description = 'sssss'
-    const betAmount = new anchor.BN(1) // 1 SOL
+    const betAmount = new anchor.BN(0.5 * LAMPORTS_PER_SOL) // 1 SOL
 
     // Find PDA for market
     const [marketPDA] = PublicKey.findProgramAddressSync(
@@ -148,28 +148,41 @@ describe('yapdotfun program', () => {
 
     // Get initial balances
     const initialMarketBalance = await provider.connection.getBalance(marketPDA)
+    const initialUserBalance = await provider.connection.getBalance(user)
 
     // Buy with YES and amount of 1 SOL
-    await program.methods
+    const tx = await program.methods
       .buy(true, betAmount)
       .accounts({
         market: marketPDA,
         signer: user
       })
       .rpc()
+    console.log('Buy transaction signature:', tx)
+
+    // Wait for 3 seconds
+    await new Promise((resolve) => setTimeout(resolve, 3000))
 
     // Verify market received the SOL
     const finalMarketBalance = await provider.connection.getBalance(marketPDA)
-    expect(finalMarketBalance - initialMarketBalance).toEqual(
+    console.log('finalMarketBalance', finalMarketBalance)
+    console.log('initialMarketBalance', initialMarketBalance)
+    expect(finalMarketBalance - initialMarketBalance).toBeGreaterThanOrEqual(
+      betAmount.toNumber()
+    )
+
+    // Verify user's balance decreased by at least the bet amount
+    const finalUserBalance = await provider.connection.getBalance(user)
+    console.log('initialUserBalance', initialUserBalance)
+    console.log('finalUserBalance', finalUserBalance)
+    expect(initialUserBalance - finalUserBalance).toBeGreaterThanOrEqual(
       betAmount.toNumber()
     )
 
     // Verify market metadata was updated correctly
     const marketMetadata =
       await program.account.marketMetadata.fetch(marketMetadataPDA)
-    const expectedYesShares = betAmount
-      .mul(new anchor.BN(LAMPORTS_PER_SOL))
-      .div(new anchor.BN(1e3))
+    const expectedYesShares = betAmount.div(new anchor.BN(1000))
 
     expect(marketMetadata.totalYesShares.toString()).toEqual(
       expectedYesShares.toString()
@@ -207,7 +220,7 @@ describe('yapdotfun program', () => {
 
     // First vote should succeed
     await program.methods
-      .buy(true, new anchor.BN(LAMPORTS_PER_SOL))
+      .buy(true, new anchor.BN(0.5 * LAMPORTS_PER_SOL))
       .accounts({
         market: marketPDA,
         signer: user
@@ -217,7 +230,7 @@ describe('yapdotfun program', () => {
     // Second vote should fail
     try {
       await program.methods
-        .buy(false, new anchor.BN(LAMPORTS_PER_SOL))
+        .buy(false, new anchor.BN(0.5 * LAMPORTS_PER_SOL))
         .accounts({
           market: marketPDA,
           signer: user

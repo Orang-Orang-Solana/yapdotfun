@@ -10,7 +10,7 @@ use events::*;
 use instructions::*;
 use utils::*;
 
-declare_id!("YappeTaxE8txMK7LwUuFBswCvnktievP7f3U5c5tZwB");
+declare_id!("4tsFN1tukaM3Jm4x9EPpAKCWQXibwaCzwmsvmuodGK5D");
 
 #[program]
 pub mod yapdotfun {
@@ -22,5 +22,9 @@ pub mod yapdotfun {
 
     pub fn buy(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
         instructions::buy::handler(ctx, bet, amount)
+    }
+
+    pub fn sell(ctx: Context<Sell>, bet: bool, amount: u64) -> Result<()> {
+        instructions::sell::handler(ctx, bet, amount)
     }
 }

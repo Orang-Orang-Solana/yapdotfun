@@ -6,8 +6,8 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-basic = "Byfe7meApVtusnaZ84r3G1ss1m7pDHUNndCD6yexyNcE"
-yapdotfun = "YappeTaxE8txMK7LwUuFBswCvnktievP7f3U5c5tZwB"
+basic = "7k5GyUbXZGaACsrShG97xtmYrfkh582utpnWJ1NH2VPz"
+yapdotfun = "4tsFN1tukaM3Jm4x9EPpAKCWQXibwaCzwmsvmuodGK5D"
 
 [registry]
 url = "https://api.apr.dev"

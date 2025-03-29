@@ -1,4 +1,4 @@
-use crate::state::*;
+use crate::{state::*, utils::IntoShares};
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 
 /// Accounts required for the buy instruction
@@ -43,11 +43,6 @@ pub struct Buy<'info> {
     pub system_program: Program<'info, System>,
 }
 
-/// Constant used for share calculation
-/// Represents the number of shares per SOL
-#[allow(dead_code)]
-const SHARES: f32 = 1e3;
-
 /// Buy instruction handler
 ///
 /// This function allows a user to vote on a market by transferring SOL
@@ -74,13 +69,9 @@ pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
         crate::YapdotfunError::MarketClosed
     );
 
-    // Transfer SOL from the signer to the market account
-    let from = ctx.accounts.signer.to_account_info();
-    let to = ctx.accounts.market.to_account_info();
-    let _ = crate::transfer_sol(ctx.accounts.system_program.to_owned(), from, to, amount);
-
     // Calculate shares based on the amount of SOL transferred
-    let shares = (amount as f32 * LAMPORTS_PER_SOL as f32 / SHARES) as u64;
+    let shares = amount.into_shares();
+    dbg!("shares", shares);
 
     // Update market metadata based on the vote direction
     match bet {
@@ -102,6 +93,11 @@ pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
     let market_voter_account = &mut ctx.accounts.market_voter;
     market_voter_account.amount = amount;
     market_voter_account.vote = bet;
+
+    // Transfer SOL from the signer to the market account
+    let from = ctx.accounts.signer.to_account_info();
+    let to = ctx.accounts.market.to_account_info();
+    let _ = crate::transfer_sol(ctx.accounts.system_program.to_owned(), from, to, amount);
 
     Ok(())
 }
