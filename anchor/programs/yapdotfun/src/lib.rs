@@ -22,8 +22,12 @@ pub mod yapdotfun {
     /// # Arguments
     /// * `ctx` - The context for the instruction
     /// * `description` - Description of what this market is predicting
-    pub fn initialize_market(ctx: Context<InitializeMarket>, description: String) -> Result<()> {
-        instructions::initialize_market::handler(ctx, description)
+    pub fn initialize_market(
+        ctx: Context<InitializeMarket>,
+        description: String,
+        expected_resolution_date: u64,
+    ) -> Result<()> {
+        instructions::initialize_market::handler(ctx, description, expected_resolution_date)
     }
 
     /// Buy shares in a prediction market

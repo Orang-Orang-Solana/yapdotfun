@@ -12,9 +12,20 @@ export type Yapdotfun = {
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
+  "docs": [
+    "Program for creating and interacting with prediction markets"
+  ],
   "instructions": [
     {
       "name": "buy",
+      "docs": [
+        "Buy shares in a prediction market",
+        "",
+        "# Arguments",
+        "* `ctx` - The context for the instruction",
+        "* `bet` - Whether buying YES (true) or NO (false) shares",
+        "* `amount` - Amount of SOL to spend on shares"
+      ],
       "discriminator": [
         102,
         6,
@@ -36,8 +47,8 @@ export type Yapdotfun = {
         {
           "name": "marketMetadata",
           "docs": [
-            "The market metadata account that tracks voting statistics",
-            "This PDA is derived from the market account"
+            "The market metadata account that tracks voting statistics.",
+            "PDA derived from [\"market_metadata\", market]"
           ],
           "writable": true,
           "pda": {
@@ -72,8 +83,8 @@ export type Yapdotfun = {
         {
           "name": "marketVoter",
           "docs": [
-            "A new account that will be initialized to track this user's vote",
-            "This PDA is derived from the voter's pubkey and the market"
+            "The market voter account that tracks the user's vote.",
+            "PDA derived from [\"market_voter\", signer, market]"
           ],
           "writable": true,
           "pda": {
@@ -135,6 +146,13 @@ export type Yapdotfun = {
     },
     {
       "name": "initializeMarket",
+      "docs": [
+        "Initialize a new prediction market with a description",
+        "",
+        "# Arguments",
+        "* `ctx` - The context for the instruction",
+        "* `description` - Description of what this market is predicting"
+      ],
       "discriminator": [
         35,
         35,
@@ -149,16 +167,19 @@ export type Yapdotfun = {
         {
           "name": "market",
           "docs": [
-            "The main market account that stores core market information",
-            "PDA derived from \"market\" and the hash of the market description"
+            "The main market account that stores core market information.",
+            "PDA derived from \"market\" and the hash of the market description.",
+            "Space allocated includes 8 bytes for discriminator, Market struct size,",
+            "and length of the hashed description."
           ],
           "writable": true
         },
         {
           "name": "marketMetadata",
           "docs": [
-            "The market metadata account that stores financial information about the market",
-            "PDA derived from \"market_metadata\" and the market account's public key"
+            "The market metadata account that stores financial information about the market.",
+            "PDA derived from \"market_metadata\" and the market account's public key.",
+            "Space allocated includes 8 bytes for discriminator and MarketMetadata struct size."
           ],
           "writable": true,
           "pda": {
@@ -193,7 +214,8 @@ export type Yapdotfun = {
         {
           "name": "signer",
           "docs": [
-            "The account that is initializing the market and paying for account creation"
+            "The account that is initializing the market and paying for account creation.",
+            "This account must be mutable as it will pay for the account creation."
           ],
           "writable": true,
           "signer": true
@@ -210,11 +232,23 @@ export type Yapdotfun = {
         {
           "name": "description",
           "type": "string"
+        },
+        {
+          "name": "expectedResolutionDate",
+          "type": "u64"
         }
       ]
     },
     {
       "name": "sell",
+      "docs": [
+        "Sell shares in a prediction market",
+        "",
+        "# Arguments",
+        "* `ctx` - The context for the instruction",
+        "* `bet` - Whether selling YES (true) or NO (false) shares",
+        "* `amount` - Number of shares to sell"
+      ],
       "discriminator": [
         51,
         230,
@@ -236,8 +270,8 @@ export type Yapdotfun = {
         {
           "name": "marketMetadata",
           "docs": [
-            "The market metadata account that tracks voting statistics",
-            "This PDA is derived from the market account"
+            "The market metadata account that tracks voting statistics.",
+            "PDA derived from [\"market_metadata\", market]"
           ],
           "writable": true,
           "pda": {
@@ -272,8 +306,8 @@ export type Yapdotfun = {
         {
           "name": "marketVoter",
           "docs": [
-            "The market voter account that tracks the user's vote",
-            "This PDA is derived from the voter's pubkey and the market"
+            "The market voter account that tracks the user's vote.",
+            "PDA derived from [\"market_voter\", signer, market]"
           ],
           "writable": true,
           "pda": {
@@ -482,6 +516,13 @@ export type Yapdotfun = {
               "Public key of the account that created this market"
             ],
             "type": "pubkey"
+          },
+          {
+            "name": "expectedResolutionDate",
+            "docs": [
+              "Expected resolution date of the market"
+            ],
+            "type": "u64"
           }
         ]
       }
@@ -492,7 +533,8 @@ export type Yapdotfun = {
         "Event emitted when a prediction market is closed",
         "",
         "This event is triggered when a market's status is changed from Open to Closed,",
-        "indicating that it is no longer accepting bets and is ready for settlement."
+        "indicating that it is no longer accepting bets and is ready for settlement.",
+        "After closing, the market awaits resolution by an authorized resolver."
       ],
       "type": {
         "kind": "struct",
@@ -637,7 +679,7 @@ export type Yapdotfun = {
     {
       "name": "marketVoter",
       "docs": [
-        "Account that tracks a user's vote on a specific market",
+        "Account that tracks a user's position in a specific market",
         "PDA derived from \"market_voter\", the voter's public key, and the market account's public key"
       ],
       "type": {
@@ -653,7 +695,7 @@ export type Yapdotfun = {
           {
             "name": "vote",
             "docs": [
-              "The user's vote (true = YES, false = NO)"
+              "The user's prediction (true = YES, false = NO)"
             ],
             "type": "bool"
           }

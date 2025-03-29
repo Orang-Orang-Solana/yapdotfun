@@ -27,6 +27,8 @@ pub struct Market {
     pub answer: bool,
     /// Public key of the account that created this market
     pub initializer: Pubkey,
+    /// Expected resolution date of the market
+    pub expected_resolution_date: u64,
 }
 
 #[account]

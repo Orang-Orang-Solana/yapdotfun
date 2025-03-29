@@ -15,6 +15,9 @@ describe('yapdotfun program', () => {
   anchor.setProvider(provider)
 
   const user = provider.wallet.publicKey
+  const expectedResolutionDate = new anchor.BN(
+    new Date().getTime() + 1000 * 60 * 60 * 24 * 30
+  ) // 30 days from now
 
   beforeEach(async () => {
     // airdrop 5 SOL to the wallet
@@ -35,7 +38,6 @@ describe('yapdotfun program', () => {
 
   it('should initialize a market with a description', async () => {
     const description = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-
     // Find PDA for market
     const [marketPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from('market'), hashString(description)],
@@ -50,7 +52,7 @@ describe('yapdotfun program', () => {
 
     // Initialize market with all required accounts
     const tx = await program.methods
-      .initializeMarket(description)
+      .initializeMarket(description, expectedResolutionDate)
       .accounts({
         market: marketPDA,
         signer: user
@@ -83,15 +85,9 @@ describe('yapdotfun program', () => {
       program.programId
     )
 
-    // Find PDA for market metadata
-    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
-      program.programId
-    )
-
     // Initialize market first time
     await program.methods
-      .initializeMarket(description)
+      .initializeMarket(description, expectedResolutionDate)
       .accounts({
         market: marketPDA,
         signer: user
@@ -101,7 +97,7 @@ describe('yapdotfun program', () => {
     try {
       // Try to initialize with same description (should fail)
       await program.methods
-        .initializeMarket(description)
+        .initializeMarket(description, expectedResolutionDate)
         .accounts({
           market: marketPDA,
           signer: user
@@ -139,7 +135,7 @@ describe('yapdotfun program', () => {
 
     // Initialize market
     await program.methods
-      .initializeMarket(description)
+      .initializeMarket(description, expectedResolutionDate)
       .accounts({
         market: marketPDA,
         signer: user
@@ -151,14 +147,13 @@ describe('yapdotfun program', () => {
     const initialUserBalance = await provider.connection.getBalance(user)
 
     // Buy with YES and amount of 1 SOL
-    const tx = await program.methods
+    await program.methods
       .buy(true, betAmount)
       .accounts({
         market: marketPDA,
         signer: user
       })
       .rpc()
-    console.log('Buy transaction signature:', tx)
 
     // Wait for 3 seconds
     await new Promise((resolve) => setTimeout(resolve, 3000))
@@ -211,7 +206,7 @@ describe('yapdotfun program', () => {
 
     // Initialize market
     await program.methods
-      .initializeMarket(description)
+      .initializeMarket(description, expectedResolutionDate)
       .accounts({
         market: marketPDA,
         signer: user
@@ -254,7 +249,7 @@ describe('yapdotfun program', () => {
 
     // Initialize market
     await program.methods
-      .initializeMarket(description)
+      .initializeMarket(description, expectedResolutionDate)
       .accounts({
         market: marketPDA,
         signer: user

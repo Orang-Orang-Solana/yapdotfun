@@ -86,7 +86,11 @@ pub struct InitializeMarket<'info> {
 /// # Errors
 /// * Will return Anchor error if PDA derivation fails or if account initialization fails
 /// * Will return Anchor error if space allocation fails
-pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()> {
+pub fn handler(
+    ctx: Context<InitializeMarket>,
+    description: String,
+    expected_resolution_date: u64,
+) -> Result<()> {
     let market_account = &mut ctx.accounts.market;
     let default_market = Market::default();
 
@@ -95,7 +99,7 @@ pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()
     market_account.status = default_market.status;
     market_account.answer = default_market.answer;
     market_account.initializer = ctx.accounts.signer.key().to_owned();
-
+    market_account.expected_resolution_date = expected_resolution_date;
     // Initialize market metadata account with default values (all zeros)
     let market_metadata_account = &mut ctx.accounts.market_metadata;
     let default_market_metadata = MarketMetadata::default();
