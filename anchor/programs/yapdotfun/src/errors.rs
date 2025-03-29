@@ -41,7 +41,7 @@ pub enum YapdotfunError {
     /// Error returned when non-oracle account attempts oracle operations
     ///
     /// This error occurs when an account without oracle privileges attempts to perform
-    /// oracle-only operations like resolving markets.
+    /// oracle-only operations like closing or resolving markets.
     #[msg("Caller is not oracle")]
     NotOracle,
 

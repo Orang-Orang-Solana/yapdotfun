@@ -20,6 +20,7 @@ pub struct MarketInitializedEvent {
 ///
 /// This event is triggered when a market's status is changed from Open to Closed,
 /// indicating that it is no longer accepting bets and is ready for settlement.
+/// After closing, the market awaits resolution by an authorized resolver.
 #[event]
 pub struct MarketClosedEvent {
     /// A human-readable message describing the event

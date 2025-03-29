@@ -1,5 +1,5 @@
 use crate::{state::*, utils::IntoShares};
-use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
+use anchor_lang::prelude::*;
 
 /// Accounts required for the buy instruction
 #[derive(Accounts)]
@@ -8,8 +8,8 @@ pub struct Buy<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-    /// The market metadata account that tracks voting statistics
-    /// This PDA is derived from the market account
+    /// The market metadata account that tracks voting statistics.
+    /// PDA derived from ["market_metadata", market]
     #[account(
         mut,
         seeds = [
@@ -20,8 +20,8 @@ pub struct Buy<'info> {
     )]
     pub market_metadata: Account<'info, MarketMetadata>,
 
-    /// A new account that will be initialized to track this user's vote
-    /// This PDA is derived from the voter's pubkey and the market
+    /// The market voter account that tracks the user's vote.
+    /// PDA derived from ["market_voter", signer, market]
     #[account(
         init,
         payer = signer,

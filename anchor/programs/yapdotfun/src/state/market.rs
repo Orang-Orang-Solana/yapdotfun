@@ -48,11 +48,11 @@ pub struct MarketMetadata {
 
 #[account]
 #[derive(Default, InitSpace)]
-/// Account that tracks a user's vote on a specific market
+/// Account that tracks a user's position in a specific market
 /// PDA derived from "market_voter", the voter's public key, and the market account's public key
 pub struct MarketVoter {
     /// Amount of SOL (in lamports) that the user has invested
     pub amount: u64,
-    /// The user's vote (true = YES, false = NO)
+    /// The user's prediction (true = YES, false = NO)
     pub vote: bool,
 }

@@ -2,6 +2,17 @@ use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 
 use crate::{errors::YapdotfunError, state::*};
 
+/// Instruction handler for selling shares in a prediction market
+///
+/// # Arguments
+/// * `ctx` - The context for the instruction
+/// * `bet` - Whether selling YES (true) or NO (false) shares
+/// * `shares` - Number of shares to sell
+///
+/// # Errors
+/// * `MarketClosed` - If the market is already closed
+/// * `NoSharesToSell` - If trying to sell 0 shares
+/// * `NotEnoughShares` - If user doesn't have enough shares of the specified type
 pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
     // Ensure the market is not closed
     require!(
@@ -45,14 +56,15 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
     Ok(())
 }
 
+/// Accounts required for the sell instruction
 #[derive(Accounts)]
 pub struct Sell<'info> {
     /// The market account that will be updated
     #[account(mut)]
     pub market: Account<'info, Market>,
 
-    /// The market metadata account that tracks voting statistics
-    /// This PDA is derived from the market account
+    /// The market metadata account that tracks voting statistics.
+    /// PDA derived from ["market_metadata", market]
     #[account(
         mut,
         seeds = [
@@ -63,8 +75,8 @@ pub struct Sell<'info> {
     )]
     pub market_metadata: Account<'info, MarketMetadata>,
 
-    /// The market voter account that tracks the user's vote
-    /// This PDA is derived from the voter's pubkey and the market
+    /// The market voter account that tracks the user's vote.
+    /// PDA derived from ["market_voter", signer, market]
     #[account(
         mut,
         seeds = [

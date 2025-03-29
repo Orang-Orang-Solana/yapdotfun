@@ -25,8 +25,10 @@ impl StringExt for String {
 #[derive(Accounts)]
 #[instruction(description: String)]
 pub struct InitializeMarket<'info> {
-    /// The main market account that stores core market information
-    /// PDA derived from "market" and the hash of the market description
+    /// The main market account that stores core market information.
+    /// PDA derived from "market" and the hash of the market description.
+    /// Space allocated includes 8 bytes for discriminator, Market struct size,
+    /// and length of the hashed description.
     #[account(
         init,
         payer = signer,
@@ -39,8 +41,9 @@ pub struct InitializeMarket<'info> {
     )]
     pub market: Account<'info, Market>,
 
-    /// The market metadata account that stores financial information about the market
-    /// PDA derived from "market_metadata" and the market account's public key
+    /// The market metadata account that stores financial information about the market.
+    /// PDA derived from "market_metadata" and the market account's public key.
+    /// Space allocated includes 8 bytes for discriminator and MarketMetadata struct size.
     #[account(
         init,
         payer = signer,
@@ -53,7 +56,8 @@ pub struct InitializeMarket<'info> {
     )]
     pub market_metadata: Account<'info, MarketMetadata>,
 
-    /// The account that is initializing the market and paying for account creation
+    /// The account that is initializing the market and paying for account creation.
+    /// This account must be mutable as it will pay for the account creation.
     #[account(mut)]
     pub signer: Signer<'info>,
 
@@ -76,10 +80,12 @@ pub struct InitializeMarket<'info> {
 /// * `Result<()>` - Result indicating success or failure
 ///
 /// # Events
-/// * `MarketInitializedEvent` - Emitted when a market is successfully initialized
+/// * `MarketInitializedEvent` - Emitted when a market is successfully initialized,
+///   containing the market ID, metadata ID, and initializer address
 ///
 /// # Errors
 /// * Will return Anchor error if PDA derivation fails or if account initialization fails
+/// * Will return Anchor error if space allocation fails
 pub fn handler(ctx: Context<InitializeMarket>, description: String) -> Result<()> {
     let market_account = &mut ctx.accounts.market;
     let default_market = Market::default();
