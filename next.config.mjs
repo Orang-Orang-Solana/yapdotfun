@@ -4,6 +4,12 @@ const nextConfig = {
     remotePatterns: [
       {
         hostname: 'brown-glamorous-bear-418.mypinata.cloud'
+      },
+      {
+        hostname: 'example.com'
+      },
+      {
+        hostname: 'firebasestorage.googleapis.com'
       }
     ]
   }

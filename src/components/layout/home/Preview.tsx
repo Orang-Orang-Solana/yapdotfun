@@ -1,8 +1,8 @@
-import { ThreeDMarquee } from './ui/3d-marquee'
+import { ThreeDMarquee } from '../../ui/3d-marquee'
 
 export default function Preview() {
   return (
-    <div className="relative">
+    <div className="relative hidden xl:block">
       <ThreeDMarquee images={images} />
     </div>
   )

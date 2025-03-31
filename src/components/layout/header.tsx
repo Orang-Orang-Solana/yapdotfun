@@ -15,7 +15,7 @@ export default function Header() {
   const pathname = usePathname()
 
   return (
-    <header className="p-3 xl:px-20 grid grid-cols-2 items-center bg-seoondary">
+    <header className="p-5 xl:px-20 2xl:px-40 grid grid-cols-2 items-center">
       <section className="flex items-center gap-10">
         <Link href={'/'}>
           <h1 className="font-bold uppercase">YapDotFun</h1>
@@ -37,7 +37,7 @@ export default function Header() {
           ))}
         </ul>
       </section>
-      <div className="flex items-center gap-5 place-content-end">
+      <div className="hidden xl:flex items-center gap-5 place-content-end">
         <ClusterUiSelect />
         <WalletButton />
       </div>

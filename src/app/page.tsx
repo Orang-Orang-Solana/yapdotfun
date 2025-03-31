@@ -1,4 +1,4 @@
-import Preview from '@/components/Preview'
+import Preview from '@/components/layout/home/Preview'
 import Hero from '@/components/layout/home/hero'
 
 export default function Home() {

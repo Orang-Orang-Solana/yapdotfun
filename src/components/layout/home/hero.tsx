@@ -6,7 +6,7 @@ import { Spotlight } from '@/components/ui/spotlight'
 export default function Hero() {
   return (
     // <div className="grid xl:grid-cols-2 overflow-x-hidden">
-    <div className="relative flex h-[calc(100vh-10vh)] overflow-hidden antialiased md:items-center md:justify-center xl:px-20">
+    <div className="relative flex h-[calc(100vh-10vh)] overflow-hidden antialiased md:items-center md:justify-center xl:px-20 2xl:px-40">
       <Spotlight
         className="-top-20 left-20 md:-top-0 md:left-40"
         fill="white"

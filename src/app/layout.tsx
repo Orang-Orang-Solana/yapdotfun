@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import { ClusterProvider } from '@/components/cluster/cluster-data-access'
 import Header from '@/components/layout/header'
 import { SolanaProvider } from '@/components/solana/solana-provider'
+import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/config/ThemeProvider'
 
 import './globals.css'
@@ -40,6 +41,7 @@ export default function RootLayout({
               </SolanaProvider>
             </ClusterProvider>
           </ReactQueryProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
