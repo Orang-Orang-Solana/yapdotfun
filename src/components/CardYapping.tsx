@@ -58,7 +58,8 @@ export default function CardYapping() {
           <Card key={index}>
             <CardHeader>
               <CardTitle>
-                <Link href={'/'}>
+                {/* index + 1 diganti jadi address yapping bim */}
+                <Link href={`/yapping/${index + 1}`}>
                   <Image
                     src={data.image}
                     alt={data.description}
