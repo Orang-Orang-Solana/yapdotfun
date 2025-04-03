@@ -1,10 +1,4 @@
-/**
- * Program IDL in camelCase format in order to be used in JS/TS.
- *
- * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/yapdotfun.json`.
- */
-export type Yapdotfun = {
+{
   "address": "4tsFN1tukaM3Jm4x9EPpAKCWQXibwaCzwmsvmuodGK5D",
   "metadata": {
     "name": "yapdotfun",
@@ -12,9 +6,7 @@ export type Yapdotfun = {
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
-  "docs": [
-    "Program for creating and interacting with prediction markets"
-  ],
+  "docs": ["Program for creating and interacting with prediction markets"],
   "instructions": [
     {
       "name": "buy",
@@ -26,26 +18,15 @@ export type Yapdotfun = {
         "* `bet` - Whether buying YES (true) or NO (false) shares",
         "* `amount` - Amount of SOL to spend on shares (in lamports)"
       ],
-      "discriminator": [
-        102,
-        6,
-        61,
-        18,
-        1,
-        218,
-        235,
-        234
-      ],
+      "discriminator": [102, 6, 61, 18, 1, 218, 235, 234],
       "accounts": [
         {
           "name": "market",
-          "docs": [
-            "The market account that will be updated"
-          ],
+          "docs": ["The market account that will be updated"],
           "writable": true
         },
         {
-          "name": "marketMetadata",
+          "name": "market_metadata",
           "docs": [
             "The market metadata account that tracks voting statistics.",
             "PDA derived from [\"market_metadata\", market]"
@@ -56,21 +37,8 @@ export type Yapdotfun = {
               {
                 "kind": "const",
                 "value": [
-                  109,
-                  97,
-                  114,
-                  107,
-                  101,
-                  116,
-                  95,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
+                  109, 97, 114, 107, 101, 116, 95, 109, 101, 116, 97, 100, 97,
+                  116, 97
                 ]
               },
               {
@@ -81,7 +49,7 @@ export type Yapdotfun = {
           }
         },
         {
-          "name": "marketVoter",
+          "name": "market_voter",
           "docs": [
             "The market voter account that tracks the user's vote.",
             "PDA derived from [\"market_voter\", signer, market]"
@@ -92,18 +60,7 @@ export type Yapdotfun = {
               {
                 "kind": "const",
                 "value": [
-                  109,
-                  97,
-                  114,
-                  107,
-                  101,
-                  116,
-                  95,
-                  118,
-                  111,
-                  116,
-                  101,
-                  114
+                  109, 97, 114, 107, 101, 116, 95, 118, 111, 116, 101, 114
                 ]
               },
               {
@@ -119,17 +76,13 @@ export type Yapdotfun = {
         },
         {
           "name": "signer",
-          "docs": [
-            "The user who is voting and paying for the transaction"
-          ],
+          "docs": ["The user who is voting and paying for the transaction"],
           "writable": true,
           "signer": true
         },
         {
-          "name": "systemProgram",
-          "docs": [
-            "The system program, used for transferring SOL"
-          ],
+          "name": "system_program",
+          "docs": ["The system program, used for transferring SOL"],
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -145,7 +98,7 @@ export type Yapdotfun = {
       ]
     },
     {
-      "name": "initializeMarket",
+      "name": "initialize_market",
       "docs": [
         "Initialize a new prediction market with a description",
         "",
@@ -154,16 +107,7 @@ export type Yapdotfun = {
         "* `description` - Description of what this market is predicting",
         "* `expected_resolution_date` - Unix timestamp when the market is expected to resolve"
       ],
-      "discriminator": [
-        35,
-        35,
-        189,
-        193,
-        155,
-        48,
-        170,
-        203
-      ],
+      "discriminator": [35, 35, 189, 193, 155, 48, 170, 203],
       "accounts": [
         {
           "name": "market",
@@ -176,7 +120,7 @@ export type Yapdotfun = {
           "writable": true
         },
         {
-          "name": "marketMetadata",
+          "name": "market_metadata",
           "docs": [
             "The market metadata account that stores financial information about the market.",
             "PDA derived from \"market_metadata\" and the market account's public key.",
@@ -188,21 +132,8 @@ export type Yapdotfun = {
               {
                 "kind": "const",
                 "value": [
-                  109,
-                  97,
-                  114,
-                  107,
-                  101,
-                  116,
-                  95,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
+                  109, 97, 114, 107, 101, 116, 95, 109, 101, 116, 97, 100, 97,
+                  116, 97
                 ]
               },
               {
@@ -222,7 +153,7 @@ export type Yapdotfun = {
           "signer": true
         },
         {
-          "name": "systemProgram",
+          "name": "system_program",
           "docs": [
             "The Solana System Program, required for creating new accounts"
           ],
@@ -235,13 +166,13 @@ export type Yapdotfun = {
           "type": "string"
         },
         {
-          "name": "expectedResolutionDate",
+          "name": "expected_resolution_date",
           "type": "u64"
         }
       ]
     },
     {
-      "name": "resolveMarket",
+      "name": "resolve_market",
       "docs": [
         "Resolve a prediction market with the final outcome",
         "",
@@ -249,16 +180,7 @@ export type Yapdotfun = {
         "* `ctx` - The context for the instruction",
         "* `answer` - The final outcome of the market (true = YES, false = NO)"
       ],
-      "discriminator": [
-        155,
-        23,
-        80,
-        173,
-        46,
-        74,
-        23,
-        239
-      ],
+      "discriminator": [155, 23, 80, 173, 46, 74, 23, 239],
       "accounts": [
         {
           "name": "market",
@@ -268,7 +190,7 @@ export type Yapdotfun = {
           "writable": true
         },
         {
-          "name": "marketMetadata",
+          "name": "market_metadata",
           "docs": [
             "The market metadata account that tracks voting statistics.",
             "PDA derived from [\"market_metadata\", market]"
@@ -279,21 +201,8 @@ export type Yapdotfun = {
               {
                 "kind": "const",
                 "value": [
-                  109,
-                  97,
-                  114,
-                  107,
-                  101,
-                  116,
-                  95,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
+                  109, 97, 114, 107, 101, 116, 95, 109, 101, 116, 97, 100, 97,
+                  116, 97
                 ]
               },
               {
@@ -313,10 +222,8 @@ export type Yapdotfun = {
           "signer": true
         },
         {
-          "name": "systemProgram",
-          "docs": [
-            "The system program, required for system operations"
-          ],
+          "name": "system_program",
+          "docs": ["The system program, required for system operations"],
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -337,26 +244,15 @@ export type Yapdotfun = {
         "* `bet` - Whether selling YES (true) or NO (false) shares",
         "* `shares` - Number of shares to sell"
       ],
-      "discriminator": [
-        51,
-        230,
-        133,
-        164,
-        1,
-        127,
-        131,
-        173
-      ],
+      "discriminator": [51, 230, 133, 164, 1, 127, 131, 173],
       "accounts": [
         {
           "name": "market",
-          "docs": [
-            "The market account that will be updated"
-          ],
+          "docs": ["The market account that will be updated"],
           "writable": true
         },
         {
-          "name": "marketMetadata",
+          "name": "market_metadata",
           "docs": [
             "The market metadata account that tracks voting statistics.",
             "PDA derived from [\"market_metadata\", market]"
@@ -367,21 +263,8 @@ export type Yapdotfun = {
               {
                 "kind": "const",
                 "value": [
-                  109,
-                  97,
-                  114,
-                  107,
-                  101,
-                  116,
-                  95,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
+                  109, 97, 114, 107, 101, 116, 95, 109, 101, 116, 97, 100, 97,
+                  116, 97
                 ]
               },
               {
@@ -392,7 +275,7 @@ export type Yapdotfun = {
           }
         },
         {
-          "name": "marketVoter",
+          "name": "market_voter",
           "docs": [
             "The market voter account that tracks the user's vote.",
             "PDA derived from [\"market_voter\", signer, market]"
@@ -403,18 +286,7 @@ export type Yapdotfun = {
               {
                 "kind": "const",
                 "value": [
-                  109,
-                  97,
-                  114,
-                  107,
-                  101,
-                  116,
-                  95,
-                  118,
-                  111,
-                  116,
-                  101,
-                  114
+                  109, 97, 114, 107, 101, 116, 95, 118, 111, 116, 101, 114
                 ]
               },
               {
@@ -430,17 +302,13 @@ export type Yapdotfun = {
         },
         {
           "name": "signer",
-          "docs": [
-            "The user who is selling their shares"
-          ],
+          "docs": ["The user who is selling their shares"],
           "writable": true,
           "signer": true
         },
         {
-          "name": "systemProgram",
-          "docs": [
-            "The system program, used for transferring SOL"
-          ],
+          "name": "system_program",
+          "docs": ["The system program, used for transferring SOL"],
           "address": "11111111111111111111111111111111"
         }
       ],
@@ -458,113 +326,68 @@ export type Yapdotfun = {
   ],
   "accounts": [
     {
-      "name": "market",
-      "discriminator": [
-        219,
-        190,
-        213,
-        55,
-        0,
-        227,
-        198,
-        154
-      ]
+      "name": "Market",
+      "discriminator": [219, 190, 213, 55, 0, 227, 198, 154]
     },
     {
-      "name": "marketMetadata",
-      "discriminator": [
-        12,
-        16,
-        109,
-        58,
-        31,
-        252,
-        133,
-        8
-      ]
+      "name": "MarketMetadata",
+      "discriminator": [12, 16, 109, 58, 31, 252, 133, 8]
     },
     {
-      "name": "marketVoter",
-      "discriminator": [
-        246,
-        139,
-        153,
-        131,
-        204,
-        223,
-        234,
-        192
-      ]
+      "name": "MarketVoter",
+      "discriminator": [246, 139, 153, 131, 204, 223, 234, 192]
     }
   ],
   "events": [
     {
-      "name": "marketClosedEvent",
-      "discriminator": [
-        64,
-        193,
-        117,
-        138,
-        19,
-        11,
-        84,
-        44
-      ]
+      "name": "MarketClosedEvent",
+      "discriminator": [64, 193, 117, 138, 19, 11, 84, 44]
     },
     {
-      "name": "marketInitializedEvent",
-      "discriminator": [
-        70,
-        173,
-        96,
-        202,
-        100,
-        143,
-        45,
-        25
-      ]
+      "name": "MarketInitializedEvent",
+      "discriminator": [70, 173, 96, 202, 100, 143, 45, 25]
     }
   ],
   "errors": [
     {
       "code": 6000,
-      "name": "amountConstraintViolated",
+      "name": "AmountConstraintViolated",
       "msg": "Amount must be greater than 0"
     },
     {
       "code": 6001,
-      "name": "marketClosed",
+      "name": "MarketClosed",
       "msg": "Market has been closed"
     },
     {
       "code": 6002,
-      "name": "marketNotClosed",
+      "name": "MarketNotClosed",
       "msg": "Market is not closed"
     },
     {
       "code": 6003,
-      "name": "marketDoesNotExist",
+      "name": "MarketDoesNotExist",
       "msg": "Market doesn't exist"
     },
     {
       "code": 6004,
-      "name": "notEnoughShares",
+      "name": "NotEnoughShares",
       "msg": "Not enough shares"
     },
     {
       "code": 6005,
-      "name": "notOracle",
+      "name": "NotOracle",
       "msg": "Caller is not oracle"
     },
     {
       "code": 6006,
-      "name": "noSharesToSell",
+      "name": "NoSharesToSell",
       "msg": "No shares to sell"
     }
   ],
   "types": [
     {
-      "name": "market",
+      "name": "Market",
       "docs": [
         "Main account that stores core information about a prediction market"
       ],
@@ -581,12 +404,10 @@ export type Yapdotfun = {
           },
           {
             "name": "status",
-            "docs": [
-              "Current status of the market (Open or Closed)"
-            ],
+            "docs": ["Current status of the market (Open or Closed)"],
             "type": {
               "defined": {
-                "name": "marketStatus"
+                "name": "MarketStatus"
               }
             }
           },
@@ -600,23 +421,17 @@ export type Yapdotfun = {
           },
           {
             "name": "initializer",
-            "docs": [
-              "Public key of the account that created this market"
-            ],
+            "docs": ["Public key of the account that created this market"],
             "type": "pubkey"
           },
           {
-            "name": "expectedResolutionDate",
-            "docs": [
-              "Expected resolution date of the market"
-            ],
+            "name": "expected_resolution_date",
+            "docs": ["Expected resolution date of the market"],
             "type": "u64"
           },
           {
-            "name": "resolvedAt",
-            "docs": [
-              "Timestamp when the market was resolved"
-            ],
+            "name": "resolved_at",
+            "docs": ["Timestamp when the market was resolved"],
             "type": {
               "option": "u64"
             }
@@ -625,7 +440,7 @@ export type Yapdotfun = {
       }
     },
     {
-      "name": "marketClosedEvent",
+      "name": "MarketClosedEvent",
       "docs": [
         "Event emitted when a prediction market is closed",
         "",
@@ -638,20 +453,18 @@ export type Yapdotfun = {
         "fields": [
           {
             "name": "message",
-            "docs": [
-              "A human-readable message describing the event"
-            ],
+            "docs": ["A human-readable message describing the event"],
             "type": "string"
           },
           {
-            "name": "marketId",
+            "name": "market_id",
             "docs": [
               "The public key of the closed market account, as a string"
             ],
             "type": "string"
           },
           {
-            "name": "marketMetadataId",
+            "name": "market_metadata_id",
             "docs": [
               "The public key of the market's metadata account, as a string"
             ],
@@ -668,7 +481,7 @@ export type Yapdotfun = {
       }
     },
     {
-      "name": "marketInitializedEvent",
+      "name": "MarketInitializedEvent",
       "docs": [
         "Event emitted when a new prediction market is initialized",
         "",
@@ -680,20 +493,18 @@ export type Yapdotfun = {
         "fields": [
           {
             "name": "message",
-            "docs": [
-              "A human-readable message describing the event"
-            ],
+            "docs": ["A human-readable message describing the event"],
             "type": "string"
           },
           {
-            "name": "marketId",
+            "name": "market_id",
             "docs": [
               "The public key of the newly created market account, as a string"
             ],
             "type": "string"
           },
           {
-            "name": "marketMetadataId",
+            "name": "market_metadata_id",
             "docs": [
               "The public key of the market metadata account, as a string"
             ],
@@ -710,7 +521,7 @@ export type Yapdotfun = {
       }
     },
     {
-      "name": "marketMetadata",
+      "name": "MarketMetadata",
       "docs": [
         "Account that stores financial information about a prediction market",
         "PDA derived from \"market_metadata\" and the market account's public key"
@@ -719,35 +530,27 @@ export type Yapdotfun = {
         "kind": "struct",
         "fields": [
           {
-            "name": "totalYesAssets",
-            "docs": [
-              "Total SOL invested in YES positions (in lamports)"
-            ],
+            "name": "total_yes_assets",
+            "docs": ["Total SOL invested in YES positions (in lamports)"],
             "type": "u64"
           },
           {
-            "name": "totalNoAssets",
-            "docs": [
-              "Total SOL invested in NO positions (in lamports)"
-            ],
+            "name": "total_no_assets",
+            "docs": ["Total SOL invested in NO positions (in lamports)"],
             "type": "u64"
           },
           {
-            "name": "totalYesShares",
-            "docs": [
-              "Total number of YES shares issued to participants"
-            ],
+            "name": "total_yes_shares",
+            "docs": ["Total number of YES shares issued to participants"],
             "type": "u64"
           },
           {
-            "name": "totalNoShares",
-            "docs": [
-              "Total number of NO shares issued to participants"
-            ],
+            "name": "total_no_shares",
+            "docs": ["Total number of NO shares issued to participants"],
             "type": "u64"
           },
           {
-            "name": "totalRewards",
+            "name": "total_rewards",
             "docs": [
               "Total SOL in the rewards pool to be distributed to winners (in lamports)"
             ],
@@ -757,24 +560,22 @@ export type Yapdotfun = {
       }
     },
     {
-      "name": "marketStatus",
-      "docs": [
-        "Represents the current status of a prediction market"
-      ],
+      "name": "MarketStatus",
+      "docs": ["Represents the current status of a prediction market"],
       "type": {
         "kind": "enum",
         "variants": [
           {
-            "name": "open"
+            "name": "Open"
           },
           {
-            "name": "closed"
+            "name": "Closed"
           }
         ]
       }
     },
     {
-      "name": "marketVoter",
+      "name": "MarketVoter",
       "docs": [
         "Account that tracks a user's position in a specific market",
         "PDA derived from \"market_voter\", the voter's public key, and the market account's public key"
@@ -784,20 +585,16 @@ export type Yapdotfun = {
         "fields": [
           {
             "name": "amount",
-            "docs": [
-              "Amount of SOL (in lamports) that the user has invested"
-            ],
+            "docs": ["Amount of SOL (in lamports) that the user has invested"],
             "type": "u64"
           },
           {
             "name": "vote",
-            "docs": [
-              "The user's prediction (true = YES, false = NO)"
-            ],
+            "docs": ["The user's prediction (true = YES, false = NO)"],
             "type": "bool"
           }
         ]
       }
     }
   ]
-};
+}

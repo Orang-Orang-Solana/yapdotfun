@@ -22,6 +22,7 @@ pub mod yapdotfun {
     /// # Arguments
     /// * `ctx` - The context for the instruction
     /// * `description` - Description of what this market is predicting
+    /// * `expected_resolution_date` - Unix timestamp when the market is expected to resolve
     pub fn initialize_market(
         ctx: Context<InitializeMarket>,
         description: String,
@@ -35,7 +36,7 @@ pub mod yapdotfun {
     /// # Arguments
     /// * `ctx` - The context for the instruction
     /// * `bet` - Whether buying YES (true) or NO (false) shares
-    /// * `amount` - Amount of SOL to spend on shares
+    /// * `amount` - Amount of SOL to spend on shares (in lamports)
     pub fn buy(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
         instructions::buy::handler(ctx, bet, amount)
     }
@@ -45,8 +46,17 @@ pub mod yapdotfun {
     /// # Arguments
     /// * `ctx` - The context for the instruction
     /// * `bet` - Whether selling YES (true) or NO (false) shares
-    /// * `amount` - Number of shares to sell
-    pub fn sell(ctx: Context<Sell>, bet: bool, amount: u64) -> Result<()> {
-        instructions::sell::handler(ctx, bet, amount)
+    /// * `shares` - Number of shares to sell
+    pub fn sell(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
+        instructions::sell::handler(ctx, bet, shares)
+    }
+
+    /// Resolve a prediction market with the final outcome
+    ///
+    /// # Arguments
+    /// * `ctx` - The context for the instruction
+    /// * `answer` - The final outcome of the market (true = YES, false = NO)
+    pub fn resolve_market(ctx: Context<ResolveMarket>, answer: bool) -> Result<()> {
+        instructions::resolve_market::handler(ctx, answer)
     }
 }

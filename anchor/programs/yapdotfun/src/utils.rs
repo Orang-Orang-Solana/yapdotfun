@@ -1,4 +1,4 @@
-use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
+use anchor_lang::prelude::*;
 
 pub(crate) fn transfer_sol<'info>(
     system_program: Program<'info, System>,

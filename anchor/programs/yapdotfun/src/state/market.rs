@@ -29,6 +29,8 @@ pub struct Market {
     pub initializer: Pubkey,
     /// Expected resolution date of the market
     pub expected_resolution_date: u64,
+    /// Timestamp when the market was resolved
+    pub resolved_at: Option<u64>,
 }
 
 #[account]

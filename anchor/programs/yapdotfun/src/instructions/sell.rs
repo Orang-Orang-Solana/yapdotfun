@@ -1,6 +1,45 @@
+use crate::{errors::YapdotfunError, state::*};
 use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
 
-use crate::{errors::YapdotfunError, state::*};
+/// Accounts required for the sell instruction
+#[derive(Accounts)]
+pub struct Sell<'info> {
+    /// The market account that will be updated
+    #[account(mut)]
+    pub market: Account<'info, Market>,
+
+    /// The market metadata account that tracks voting statistics.
+    /// PDA derived from ["market_metadata", market]
+    #[account(
+        mut,
+        seeds = [
+            b"market_metadata",
+            market.key().as_ref()
+        ],
+        bump
+    )]
+    pub market_metadata: Account<'info, MarketMetadata>,
+
+    /// The market voter account that tracks the user's vote.
+    /// PDA derived from ["market_voter", signer, market]
+    #[account(
+        mut,
+        seeds = [
+            b"market_voter",
+            signer.key().as_ref(),
+            market.key().as_ref()
+        ],
+        bump
+    )]
+    pub market_voter: Account<'info, MarketVoter>,
+
+    /// The user who is selling their shares
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    /// The system program, used for transferring SOL
+    pub system_program: Program<'info, System>,
+}
 
 /// Instruction handler for selling shares in a prediction market
 ///
@@ -54,44 +93,4 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
     let _ = crate::transfer_sol(ctx.accounts.system_program.to_owned(), from, to, amount);
 
     Ok(())
-}
-
-/// Accounts required for the sell instruction
-#[derive(Accounts)]
-pub struct Sell<'info> {
-    /// The market account that will be updated
-    #[account(mut)]
-    pub market: Account<'info, Market>,
-
-    /// The market metadata account that tracks voting statistics.
-    /// PDA derived from ["market_metadata", market]
-    #[account(
-        mut,
-        seeds = [
-            b"market_metadata",
-            market.key().as_ref()
-        ],
-        bump
-    )]
-    pub market_metadata: Account<'info, MarketMetadata>,
-
-    /// The market voter account that tracks the user's vote.
-    /// PDA derived from ["market_voter", signer, market]
-    #[account(
-        mut,
-        seeds = [
-            b"market_voter",
-            signer.key().as_ref(),
-            market.key().as_ref()
-        ],
-        bump
-    )]
-    pub market_voter: Account<'info, MarketVoter>,
-
-    /// The user who is selling their shares
-    #[account(mut)]
-    pub signer: Signer<'info>,
-
-    /// The system program, used for transferring SOL
-    pub system_program: Program<'info, System>,
 }

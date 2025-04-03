@@ -1,6 +1,7 @@
 [workspace]
 members = [
-    "programs/*"
+    "programs/*",
+    "validator-agent"
 ]
 resolver = "2"
 

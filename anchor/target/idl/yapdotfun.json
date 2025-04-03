@@ -18,7 +18,7 @@
         "# Arguments",
         "* `ctx` - The context for the instruction",
         "* `bet` - Whether buying YES (true) or NO (false) shares",
-        "* `amount` - Amount of SOL to spend on shares"
+        "* `amount` - Amount of SOL to spend on shares (in lamports)"
       ],
       "discriminator": [
         102,
@@ -145,7 +145,8 @@
         "",
         "# Arguments",
         "* `ctx` - The context for the instruction",
-        "* `description` - Description of what this market is predicting"
+        "* `description` - Description of what this market is predicting",
+        "* `expected_resolution_date` - Unix timestamp when the market is expected to resolve"
       ],
       "discriminator": [
         35,
@@ -234,6 +235,93 @@
       ]
     },
     {
+      "name": "resolve_market",
+      "docs": [
+        "Resolve a prediction market with the final outcome",
+        "",
+        "# Arguments",
+        "* `ctx` - The context for the instruction",
+        "* `answer` - The final outcome of the market (true = YES, false = NO)"
+      ],
+      "discriminator": [
+        155,
+        23,
+        80,
+        173,
+        46,
+        74,
+        23,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "docs": [
+            "The market account that will be updated with the resolution"
+          ],
+          "writable": true
+        },
+        {
+          "name": "market_metadata",
+          "docs": [
+            "The market metadata account that tracks voting statistics.",
+            "PDA derived from [\"market_metadata\", market]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "validator",
+          "docs": [
+            "The validator account that is resolving the market",
+            "Must be a signer to authorize the resolution"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "docs": [
+            "The system program, required for system operations"
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "answer",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "sell",
       "docs": [
         "Sell shares in a prediction market",
@@ -241,7 +329,7 @@
         "# Arguments",
         "* `ctx` - The context for the instruction",
         "* `bet` - Whether selling YES (true) or NO (false) shares",
-        "* `amount` - Number of shares to sell"
+        "* `shares` - Number of shares to sell"
       ],
       "discriminator": [
         51,
@@ -356,7 +444,7 @@
           "type": "bool"
         },
         {
-          "name": "amount",
+          "name": "shares",
           "type": "u64"
         }
       ]
@@ -517,6 +605,15 @@
               "Expected resolution date of the market"
             ],
             "type": "u64"
+          },
+          {
+            "name": "resolved_at",
+            "docs": [
+              "Timestamp when the market was resolved"
+            ],
+            "type": {
+              "option": "u64"
+            }
           }
         ]
       }
