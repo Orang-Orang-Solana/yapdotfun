@@ -52,6 +52,12 @@ importers:
       react-hot-toast:
         specifier: ^2.5.2
         version: 2.5.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      redis:
+        specifier: ^4.7.0
+        version: 4.7.0
+      zod:
+        specifier: ^3.24.2
+        version: 3.24.2
     devDependencies:
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^5.2.2
@@ -1758,6 +1764,53 @@ packages:
       '@types/react':
         optional: true
 
+  '@redis/bloom@1.2.0':
+    resolution:
+      {
+        integrity: sha512-HG2DFjYKbpNmVXsa0keLHp/3leGJz1mjh09f2RLGGLQZzSHpkmZWuwJbAvo3QcRY8p80m5+ZdXZdYOSBLlp7Cg==
+      }
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
+  '@redis/client@1.6.0':
+    resolution:
+      {
+        integrity: sha512-aR0uffYI700OEEH4gYnitAnv3vzVGXCFvYfdpu/CJKvk4pHfLPEy/JSZyrpQ+15WhXe1yJRXLtfQ84s4mEXnPg==
+      }
+    engines: { node: '>=14' }
+
+  '@redis/graph@1.1.1':
+    resolution:
+      {
+        integrity: sha512-FEMTcTHZozZciLRl6GiiIB4zGm5z5F3F6a6FZCyrfxdKOhFlGkiAqlexWMBzCi4DcRoyiOsuLfW+cjlGWyExOw==
+      }
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
+  '@redis/json@1.0.7':
+    resolution:
+      {
+        integrity: sha512-6UyXfjVaTBTJtKNG4/9Z8PSpKE6XgSyEb8iwaqDcy+uKrd/DGYHTWkUdnQDyzm727V7p21WUMhsqz5oy65kPcQ==
+      }
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
+  '@redis/search@1.2.0':
+    resolution:
+      {
+        integrity: sha512-tYoDBbtqOVigEDMAcTGsRlMycIIjwMCgD8eR2t0NANeQmgK/lvxNAvYyb6bZDD4frHRhIHkJu2TBRvB0ERkOmw==
+      }
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
+  '@redis/time-series@1.1.0':
+    resolution:
+      {
+        integrity: sha512-c1Q99M5ljsIuc4YdaCwfUEXsofakb9c8+Zse2qxTadu8TalLXuAESzLvFAvNVbkmSlvlzIQOLpBCmWI9wTOt+g==
+      }
+    peerDependencies:
+      '@redis/client': ^1.0.0
+
   '@rtsao/scc@1.1.0':
     resolution:
       {
@@ -3157,6 +3210,13 @@ packages:
       }
     engines: { node: '>=0.8' }
 
+  cluster-key-slot@1.1.2:
+    resolution:
+      {
+        integrity: sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==
+      }
+    engines: { node: '>=0.10.0' }
+
   co@4.6.0:
     resolution:
       {
@@ -4159,6 +4219,13 @@ packages:
       {
         integrity: sha512-xckBUXyTIqT97tq2x2AMb+g163b5JFysYk0x4qxNFwbfQkmNZoiRHb6sPzI9/QV33WeuvVYBUIiD4NzNIyqaRQ==
       }
+
+  generic-pool@3.9.0:
+    resolution:
+      {
+        integrity: sha512-hymDOu5B53XvN4QT9dBmZxPX4CWhBPPLguTZ9MMFeFa/Kg0xWVfylOVNlJji/E7yTZWFd/q9GO5TxDLq156D7g==
+      }
+    engines: { node: '>= 4' }
 
   gensync@1.0.0-beta.2:
     resolution:
@@ -6519,6 +6586,12 @@ packages:
       }
     engines: { node: '>= 4' }
 
+  redis@4.7.0:
+    resolution:
+      {
+        integrity: sha512-zvmkHEAdGMn+hMRXuMBtu4Vo5P6rHQjLoHftu+lBqq8ZTA3RCVC/WzD790bkKKiNFp7d5/9PcSD19fJyyRvOdQ==
+      }
+
   reflect.getprototypeof@1.0.10:
     resolution:
       {
@@ -7766,6 +7839,12 @@ packages:
     resolution:
       {
         integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==
+      }
+
+  yallist@4.0.0:
+    resolution:
+      {
+        integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==
       }
 
   yaml@2.7.0:
@@ -9210,6 +9289,32 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.19
 
+  '@redis/bloom@1.2.0(@redis/client@1.6.0)':
+    dependencies:
+      '@redis/client': 1.6.0
+
+  '@redis/client@1.6.0':
+    dependencies:
+      cluster-key-slot: 1.1.2
+      generic-pool: 3.9.0
+      yallist: 4.0.0
+
+  '@redis/graph@1.1.1(@redis/client@1.6.0)':
+    dependencies:
+      '@redis/client': 1.6.0
+
+  '@redis/json@1.0.7(@redis/client@1.6.0)':
+    dependencies:
+      '@redis/client': 1.6.0
+
+  '@redis/search@1.2.0(@redis/client@1.6.0)':
+    dependencies:
+      '@redis/client': 1.6.0
+
+  '@redis/time-series@1.1.0(@redis/client@1.6.0)':
+    dependencies:
+      '@redis/client': 1.6.0
+
   '@rtsao/scc@1.1.0': {}
 
   '@rushstack/eslint-patch@1.11.0': {}
@@ -10228,6 +10333,8 @@ snapshots:
 
   clone@1.0.4: {}
 
+  cluster-key-slot@1.1.2: {}
+
   co@4.6.0: {}
 
   code-block-writer@12.0.0: {}
@@ -10941,6 +11048,8 @@ snapshots:
       is-callable: 1.2.7
 
   functions-have-names@1.2.3: {}
+
+  generic-pool@3.9.0: {}
 
   gensync@1.0.0-beta.2: {}
 
@@ -12590,6 +12699,15 @@ snapshots:
       tiny-invariant: 1.3.3
       tslib: 2.8.1
 
+  redis@4.7.0:
+    dependencies:
+      '@redis/bloom': 1.2.0(@redis/client@1.6.0)
+      '@redis/client': 1.6.0
+      '@redis/graph': 1.1.1(@redis/client@1.6.0)
+      '@redis/json': 1.0.7(@redis/client@1.6.0)
+      '@redis/search': 1.2.0(@redis/client@1.6.0)
+      '@redis/time-series': 1.1.0(@redis/client@1.6.0)
+
   reflect.getprototypeof@1.0.10:
     dependencies:
       call-bind: 1.0.8
@@ -13410,6 +13528,8 @@ snapshots:
   y18n@5.0.8: {}
 
   yallist@3.1.1: {}
+
+  yallist@4.0.0: {}
 
   yaml@2.7.0: {}
 
