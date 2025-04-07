@@ -2,9 +2,12 @@ import { isAddress } from 'gill'
 
 import { ApiError } from '../error/api-error'
 
-export function checkIfAddressVald(address: string): string {
+export function checkIfAddressValid(address: string): string {
   const isValid = isAddress(address)
-  if (!isValid) ApiError.badRequest(`${address} is not valid address!`)
+  if (!isValid)
+    throw ApiError.badRequest(
+      `[AddressError] Validation Error: '${address}' is not a valid solana address!`
+    )
 
   return address
 }

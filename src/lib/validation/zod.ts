@@ -1,6 +1,6 @@
-import { ZodError, ZodType } from 'zod'
+import { ZodType } from 'zod'
 
-import { ApiError, handleApiError } from '../error/api-error'
+import { handleApiError } from '../error/api-error'
 
 export function validate<T>(schema: ZodType, data: T): T | undefined {
   try {
