@@ -5,7 +5,7 @@ import { handleApiError } from '../error/api-error'
 const client = createClient({ url: process.env.REDIS_URL })
 
 client.on('error', (err) => {
-  handleApiError(err)
+  return handleApiError(err)
 })
 
 export async function getRedisClient() {
