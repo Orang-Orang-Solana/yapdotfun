@@ -9,6 +9,19 @@ import { NonceResponse } from '@/types/auth'
 
 // Get nonce before user signing
 export async function GET(request: NextRequest) {
+  // Handle CORS
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': 'http://localhost:3001',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400'
+      }
+    })
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams
     const address = checkIfAddressValid(searchParams.get('address') || '')
@@ -26,9 +39,16 @@ export async function GET(request: NextRequest) {
 
     const responseData: ApiResponse<NonceResponse> = {
       message: 'Get nonce successfully',
-      data: { address, nonce }
+      data: { nonce }
     }
-    return NextResponse.json(responseData)
+    return NextResponse.json<ApiResponse<NonceResponse>>(responseData, {
+      headers: {
+        'Access-Control-Allow-Origin': 'http://localhost:3001',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Credentials': 'true'
+      }
+    })
   } catch (error) {
     return handleApiError(error)
   }
