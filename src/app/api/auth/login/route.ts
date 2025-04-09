@@ -9,6 +9,7 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
 import { convertSignatureToUint8Array } from '@/lib/auth/signature'
+import prisma from '@/lib/db/prisma'
 import { getRedisClient } from '@/lib/db/redis'
 import { ApiError, handleApiError } from '@/lib/error/api-error'
 import { generateToken } from '@/lib/jwt'
@@ -79,6 +80,12 @@ export async function POST(request: NextRequest) {
 
     // Clean up the used nonce from Redis
     await redisClient.del(`login-challenge-${address}`)
+
+    const user = await prisma.user.findUnique({ where: { address: address } })
+
+    if (!user) {
+      await prisma.user.create({ data: { address: address } })
+    }
 
     return NextResponse.json({ success: true, message: 'Login successful' })
   } catch (error) {

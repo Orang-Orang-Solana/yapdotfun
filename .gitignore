@@ -38,3 +38,6 @@ next-env.d.ts
 tmp
 
 /test-ledger
+
+# prisma
+/src/app/generated/prisma
