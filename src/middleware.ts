@@ -1,24 +1,21 @@
-// middleware.ts (Contoh dasar)
 import { JwtPayload } from 'jsonwebtoken'
 import { NextRequest, NextResponse } from 'next/server'
 
-import { verifyToken } from './lib/jwt'
+import { verifyToken } from './lib/jwt-edge'
 
-// Pustaka populer untuk JWT
-
-// Pastikan Anda menyimpan secret key dengan aman (misalnya di environment variable)
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET_KEY || 'default-secret-key'
-)
-const COOKIE_NAME = 'yap-auth-token' // Nama cookie yang tetap
+const COOKIE_NAME = 'yap-auth-token'
 
 export async function middleware(request: NextRequest) {
-  // Tentukan path mana saja yang perlu autentikasi
-  const protectedPaths = ['/api/comments'] // Tambahkan path lain jika perlu
+  const protectedPaths = ['/api/comments'] // Add more protected paths if needed
   const currentPath = request.nextUrl.pathname
 
-  // Hanya jalankan middleware untuk path yang dilindungi
+  // Only run middleware for protected paths
   if (protectedPaths.some((path) => currentPath.startsWith(path))) {
+    // GET requests don't require authentication
+    if (request.method === 'GET') {
+      return NextResponse.next()
+    }
+
     const token = request.cookies.get(COOKIE_NAME)?.value
 
     if (!token) {
@@ -30,34 +27,42 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      // Verifikasi token
-      const payload: JwtPayload | null = verifyToken(token)
+      // Verify token
+      const payload: JwtPayload | null = await verifyToken(token)
       if (!payload) {
+        console.error('[Middleware] Token verification failed')
         throw new Error('Invalid token')
       }
 
-      // Token valid, ekstrak alamat (sesuaikan 'sub' jika claim Anda berbeda)
+      // Extract user address from token
       const userAddress = payload.sub as string
 
       if (!userAddress) {
+        console.error('[Middleware] No user address in token')
         throw new Error('Address (sub) not found in token payload')
       }
 
       console.log(`[Middleware] Authenticated user: ${userAddress}`)
 
-      // Buat header baru untuk diteruskan ke API route
+      // Pass user address to API route via headers
       const requestHeaders = new Headers(request.headers)
       requestHeaders.set('x-user-address', userAddress)
 
-      // Lanjutkan ke API route dengan header yang dimodifikasi
       return NextResponse.next({
         request: {
           headers: requestHeaders
         }
       })
     } catch (error) {
-      console.error('[Middleware] Invalid token:', error)
-      // Hapus cookie jika token tidak valid/error
+      console.error('[Middleware] Authentication error:', error)
+
+      // Log token for debugging
+      console.log(
+        '[Middleware] Token debug:',
+        token ? token.substring(0, 10) + '...' : 'none'
+      )
+
+      // Clear invalid token cookie
       const response = NextResponse.json(
         { message: 'Authentication required: Invalid token' },
         { status: 401 }
@@ -67,23 +72,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Jika bukan path yang dilindungi, lanjutkan saja
+  // Skip middleware for unprotected paths
   return NextResponse.next()
 }
 
-// Konfigurasi matcher agar middleware hanya berjalan pada path tertentu
+// Configure middleware to run only on specific paths
 export const config = {
-  matcher: [
-    /*
-     * Cocokkan semua path request kecuali untuk:
-     * - path API Next.js (misal /api/auth/*)
-     * - file statis (_next/static)
-     * - file gambar (_next/image)
-     * - favicon.ico
-     * Anda mungkin perlu menyesuaikan ini sesuai struktur proyek
-     */
-    '/((?!api/auth|api/hello|_next/static|_next/image|favicon.ico).*)'
-    // Anda bisa lebih spesifik jika perlu:
-    // '/api/comments/:path*',
-  ]
+  matcher: ['/api/comments/:path*'],
+  runtime: 'nodejs'
 }

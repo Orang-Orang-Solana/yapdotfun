@@ -8,8 +8,12 @@ export const generateToken = (payload: JwtPayload): string => {
 
 export const verifyToken = (token: string): JwtPayload | null => {
   try {
-    return jwt.verify(token, JWT_SECRET as string) as JwtPayload
+    console.info(`token: ${token}`)
+    const payload = jwt.verify(token, JWT_SECRET as string) as JwtPayload
+    console.info(`payload: ${JSON.stringify(payload)}`)
+    return payload
   } catch (error) {
+    console.error(`Error verifying token: ${error}`)
     return null
   }
 }

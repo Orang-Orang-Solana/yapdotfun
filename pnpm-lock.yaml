@@ -46,6 +46,9 @@ importers:
       gill:
         specifier: ^0.8.2
         version: 0.8.2(@solana/sysvars@2.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.4.5))(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.4.5)(ws@7.5.10(bufferutil@4.0.9)(utf-8-validate@5.0.10))
+      jose:
+        specifier: ^6.0.10
+        version: 6.0.10
       jotai:
         specifier: ^2.12.1
         version: 2.12.2(@types/react@18.3.19)(react@18.3.1)
@@ -5899,6 +5902,12 @@ packages:
         integrity: sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A==
       }
     hasBin: true
+
+  jose@6.0.10:
+    resolution:
+      {
+        integrity: sha512-skIAxZqcMkOrSwjJvplIPYrlXGpxTPnro2/QWTDCxAdWQrSTV5/KqspMWmi5WAx5+ULswASJiZ0a+1B/Lxt9cw==
+      }
 
   jotai@2.12.2:
     resolution:
@@ -13141,6 +13150,8 @@ snapshots:
       - ts-node
 
   jiti@1.21.7: {}
+
+  jose@6.0.10: {}
 
   jotai@2.12.2(@types/react@18.3.19)(react@18.3.1):
     optionalDependencies:
