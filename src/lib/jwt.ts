@@ -6,9 +6,9 @@ export const generateToken = (payload: JwtPayload): string => {
   return jwt.sign(payload, JWT_SECRET as string)
 }
 
-export const verifyToken = (token: string): object | null => {
+export const verifyToken = (token: string): JwtPayload | null => {
   try {
-    return jwt.verify(token, JWT_SECRET as string) as object
+    return jwt.verify(token, JWT_SECRET as string) as JwtPayload
   } catch (error) {
     return null
   }

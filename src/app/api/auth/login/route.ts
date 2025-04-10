@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Set token in HTTP-only cookie
-    cookieStore.set(`yap-${address}`, token, {
+    cookieStore.set('yap-auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
       sameSite: 'lax',

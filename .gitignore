@@ -41,3 +41,6 @@ tmp
 
 # prisma
 /src/app/generated/prisma
+
+# ai-digest
+codebase.md
