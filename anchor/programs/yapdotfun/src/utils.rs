@@ -39,12 +39,12 @@ impl IntoShares for Amount {
     }
 }
 
-pub trait IntoAmount {
-    fn into_amount(self) -> Amount;
-}
+// pub trait IntoAmount {
+//     fn into_amount(self) -> Amount;
+// }
 
-impl IntoAmount for Shares {
-    fn into_amount(self) -> Amount {
-        self * SHARES
-    }
-}
+// impl IntoAmount for Shares {
+//     fn into_amount(self) -> Amount {
+//         self * SHARES
+//     }
+// }

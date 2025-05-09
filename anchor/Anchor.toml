@@ -6,14 +6,14 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-basic = "7k5GyUbXZGaACsrShG97xtmYrfkh582utpnWJ1NH2VPz"
-yapdotfun = "4tsFN1tukaM3Jm4x9EPpAKCWQXibwaCzwmsvmuodGK5D"
+basic = "DL3maGWRfpBWRrgesM1AxYwfpkgRtoskW3Fxw3MbhApi"
+yapdotfun = "Ci7oP5iPr7C3EStsLMo1U6twvaquLH9EkfCKYedeishi"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

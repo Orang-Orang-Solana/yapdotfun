@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/yapdotfun.json`.
  */
 export type Yapdotfun = {
-  "address": "4tsFN1tukaM3Jm4x9EPpAKCWQXibwaCzwmsvmuodGK5D",
+  "address": "Ci7oP5iPr7C3EStsLMo1U6twvaquLH9EkfCKYedeishi",
   "metadata": {
     "name": "yapdotfun",
     "version": "0.1.0",
@@ -310,7 +310,8 @@ export type Yapdotfun = {
             "Must be a signer to authorize the resolution"
           ],
           "writable": true,
-          "signer": true
+          "signer": true,
+          "address": "7RKgZys14jFn3MzjnzcCeTifTiG6D5FNkSMED7bXBX35"
         },
         {
           "name": "systemProgram",

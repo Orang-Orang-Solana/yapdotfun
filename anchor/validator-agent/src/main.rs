@@ -24,6 +24,7 @@ impl ValidatorAgent {
     pub fn new(keypair: Keypair) -> Self {
         let keypair = Rc::new(keypair);
         let client = Client::new(Cluster::Localnet, keypair.clone());
+
         Self {
             keypair,
             client,
@@ -41,18 +42,18 @@ impl ValidatorAgent {
             Pubkey::find_program_address(&[b"market_metadata", market_id.as_ref()], &program.id())
                 .0;
 
-        program
-            .request()
-            .accounts(yapdotfun::client::accounts::ResolveMarket {
-                market: market_id,
-                market_metadata,
-                validator: self.keypair.pubkey(),
-                system_program: System::id(),
-            })
-            .args(yapdotfun::client::args::ResolveMarket { answer })
-            .signer(self.keypair.as_ref())
-            .send()
-            .await?;
+        // program
+        //     .request()
+        //     .accounts(yapdotfun::client::accounts::ResolveMarket {
+        //         market: market_id,
+        //         market_metadata,
+        //         validator: self.keypair.pubkey(),
+        //         system_program: System::id(),
+        //     })
+        //     .args(yapdotfun::client::args::ResolveMarket { answer })
+        //     .signer(self.keypair.as_ref())
+        //     .send()
+        //     .await?;
 
         // update memory with updated market
         let mut memory = self.memory.lock().await;
@@ -80,9 +81,8 @@ impl ValidatorAgent {
 async fn main() -> anyhow::Result<()> {
     colog::init();
     let payer = read_keypair_file("validator-agent-keypair.json").unwrap();
+    log::info!("Validator agent started {}", payer.pubkey());
     let validator = Arc::new(ValidatorAgent::new(payer));
-
-    log::info!("Validator agent started");
 
     loop {
         validator.get_markets().await;

@@ -1,14 +1,15 @@
-import * as crypto from 'crypto'
+import * as crypto from 'node:crypto'
 
+import type { Program } from '@coral-xyz/anchor'
 import * as anchor from '@coral-xyz/anchor'
-import { Program } from '@coral-xyz/anchor'
 import {
+  Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
   SendTransactionError
 } from '@solana/web3.js'
 
-import { Yapdotfun } from '../target/types/yapdotfun'
+import type { Yapdotfun } from '../target/types/yapdotfun'
 
 describe('yapdotfun program', () => {
   const provider = anchor.AnchorProvider.env()
@@ -19,6 +20,22 @@ describe('yapdotfun program', () => {
     new Date().getTime() + 1000 * 60 * 60 * 24 * 30
   ) // 30 days from now
 
+  const validator = Keypair.fromSecretKey(
+    new Uint8Array([
+      96, 72, 59, 139, 230, 201, 113, 65, 242, 61, 1, 234, 235, 30, 210, 203,
+      37, 139, 250, 139, 140, 216, 91, 79, 6, 150, 206, 239, 88, 242, 67, 135,
+      95, 97, 47, 93, 235, 6, 127, 156, 200, 141, 180, 240, 247, 182, 16, 254,
+      197, 90, 40, 167, 155, 4, 65, 157, 41, 117, 84, 73, 44, 57, 27, 224
+    ])
+  )
+
+  const program = anchor.workspace.Yapdotfun as Program<Yapdotfun>
+
+  // Helper to hash the description string as done in the contract
+  function hashString(str: string) {
+    return crypto.createHash('sha256').update(str).digest()
+  }
+
   beforeEach(async () => {
     // airdrop 5 SOL to the wallet
     const tx = await provider.connection.requestAirdrop(
@@ -28,13 +45,6 @@ describe('yapdotfun program', () => {
     await provider.connection.confirmTransaction(tx)
     console.log('Airdropped 5 SOL to the wallet')
   })
-
-  const program = anchor.workspace.Yapdotfun as Program<Yapdotfun>
-
-  // Helper to hash the description string as done in the contract
-  const hashString = (str: string) => {
-    return crypto.createHash('sha256').update(str).digest()
-  }
 
   it('should initialize a market with a description', async () => {
     const description = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
@@ -260,6 +270,76 @@ describe('yapdotfun program', () => {
     try {
       await program.methods
         .buy(true, new anchor.BN(0))
+        .accounts({
+          market: marketPDA,
+          signer: user
+        })
+        .rpc()
+
+      fail('Should not reach here - expected transaction to fail')
+    } catch (error) {
+      expect(error).toBeInstanceOf(anchor.AnchorError)
+    }
+  })
+
+  it('should close the market', async () => {
+    const description = 'close market test'
+
+    // Find PDAs
+    const [marketPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market'), hashString(description)],
+      program.programId
+    )
+
+    // Initialize market
+    await program.methods
+      .initializeMarket(description, expectedResolutionDate)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    // Close market. resolve it to true
+    await program.methods
+      .resolveMarket(true)
+      .accounts({
+        market: marketPDA
+      })
+      .signers([validator])
+      .rpc()
+  })
+
+  it('should fail buy when the market has closed/resolved', async () => {
+    const description = 'close market test2'
+
+    // Find PDAs
+    const [marketPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market'), hashString(description)],
+      program.programId
+    )
+
+    // Initialize market
+    await program.methods
+      .initializeMarket(description, expectedResolutionDate)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    // Close market. resolve it to false
+    await program.methods
+      .resolveMarket(false)
+      .accounts({
+        market: marketPDA
+      })
+      .signers([validator])
+      .rpc()
+
+    try {
+      await program.methods
+        .buy(true, new anchor.BN(1))
         .accounts({
           market: marketPDA,
           signer: user

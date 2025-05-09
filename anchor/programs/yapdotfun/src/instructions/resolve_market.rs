@@ -1,6 +1,8 @@
 use crate::errors::YapdotfunError;
 use crate::events::MarketClosedEvent;
 use crate::state::{Market, MarketMetadata, MarketStatus};
+use crate::VALIDATOR_ADDRESS;
+
 use anchor_lang::prelude::*;
 
 /// Accounts required for resolving a prediction market
@@ -24,7 +26,7 @@ pub struct ResolveMarket<'info> {
 
     /// The validator account that is resolving the market
     /// Must be a signer to authorize the resolution
-    #[account(mut)]
+    #[account(mut, address = VALIDATOR_ADDRESS)]
     pub validator: Signer<'info>,
 
     /// The system program, required for system operations

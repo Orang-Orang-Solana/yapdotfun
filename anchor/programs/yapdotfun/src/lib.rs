@@ -10,7 +10,11 @@ use events::*;
 use instructions::*;
 use utils::*;
 
-declare_id!("4tsFN1tukaM3Jm4x9EPpAKCWQXibwaCzwmsvmuodGK5D");
+/// Validator address for the program - able to close market
+pub const VALIDATOR_ADDRESS: Pubkey =
+    Pubkey::from_str_const("7RKgZys14jFn3MzjnzcCeTifTiG6D5FNkSMED7bXBX35");
+
+declare_id!("Ci7oP5iPr7C3EStsLMo1U6twvaquLH9EkfCKYedeishi");
 
 /// Program for creating and interacting with prediction markets
 #[program]
