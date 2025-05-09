@@ -23,12 +23,31 @@ pub struct MarketInitializedEvent {
 /// After closing, the market awaits resolution by an authorized resolver.
 #[event]
 pub struct MarketClosedEvent {
-    /// A human-readable message describing the event
-    pub message: String,
-    /// The public key of the closed market account, as a string
+    /// ID of the market that was closed
     pub market_id: String,
-    /// The public key of the market's metadata account, as a string
+
+    /// ID of the market metadata account
     pub market_metadata_id: String,
-    /// The public key of the account that closed the market, as a string
+
+    /// Address of the user who initialized the market
     pub initializer: String,
+
+    /// Message describing the closing action
+    pub message: String,
+}
+
+#[event]
+/// Event emitted when rewards are withdrawn from a market
+pub struct RewardsWithdrawnEvent {
+    /// ID of the market the rewards are from
+    pub market_id: String,
+
+    /// Address of the user who withdrew the rewards
+    pub user: String,
+
+    /// Amount of rewards withdrawn
+    pub rewards: u64,
+
+    /// The outcome the user bet on (YES/NO)
+    pub bet: bool,
 }

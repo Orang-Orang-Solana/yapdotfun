@@ -63,4 +63,12 @@ pub mod yapdotfun {
     pub fn resolve_market(ctx: Context<ResolveMarket>, answer: bool) -> Result<()> {
         instructions::resolve_market::handler(ctx, answer)
     }
+
+    /// Withdraw rewards from a resolved prediction market
+    ///
+    /// # Arguments
+    /// * `ctx` - The context for the instruction
+    pub fn withdraw_rewards(ctx: Context<WithdrawRewards>) -> Result<()> {
+        instructions::withdraw_rewards::handler(ctx)
+    }
 }

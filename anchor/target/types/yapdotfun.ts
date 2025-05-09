@@ -455,6 +455,122 @@ export type Yapdotfun = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "withdrawRewards",
+      "docs": [
+        "Withdraw rewards from a resolved prediction market",
+        "",
+        "# Arguments",
+        "* `ctx` - The context for the instruction"
+      ],
+      "discriminator": [
+        10,
+        214,
+        219,
+        139,
+        205,
+        22,
+        251,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "docs": [
+            "The market account that contains outcome information"
+          ]
+        },
+        {
+          "name": "marketMetadata",
+          "docs": [
+            "The market metadata account that tracks voting statistics",
+            "PDA derived from [\"market_metadata\", market]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  95,
+                  109,
+                  101,
+                  116,
+                  97,
+                  100,
+                  97,
+                  116,
+                  97
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "marketVoter",
+          "docs": [
+            "The market voter account that tracks the user's vote",
+            "PDA derived from [\"market_voter\", signer, market]"
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116,
+                  95,
+                  118,
+                  111,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "docs": [
+            "The user who is withdrawing rewards"
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "docs": [
+            "The system program, used for transferring SOL"
+          ],
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -524,6 +640,19 @@ export type Yapdotfun = {
         45,
         25
       ]
+    },
+    {
+      "name": "rewardsWithdrawnEvent",
+      "discriminator": [
+        75,
+        154,
+        7,
+        41,
+        186,
+        27,
+        42,
+        132
+      ]
     }
   ],
   "errors": [
@@ -561,6 +690,11 @@ export type Yapdotfun = {
       "code": 6006,
       "name": "noSharesToSell",
       "msg": "No shares to sell"
+    },
+    {
+      "code": 6007,
+      "name": "noShares",
+      "msg": "No shares available for rewards"
     }
   ],
   "types": [
@@ -638,30 +772,30 @@ export type Yapdotfun = {
         "kind": "struct",
         "fields": [
           {
-            "name": "message",
-            "docs": [
-              "A human-readable message describing the event"
-            ],
-            "type": "string"
-          },
-          {
             "name": "marketId",
             "docs": [
-              "The public key of the closed market account, as a string"
+              "ID of the market that was closed"
             ],
             "type": "string"
           },
           {
             "name": "marketMetadataId",
             "docs": [
-              "The public key of the market's metadata account, as a string"
+              "ID of the market metadata account"
             ],
             "type": "string"
           },
           {
             "name": "initializer",
             "docs": [
-              "The public key of the account that closed the market, as a string"
+              "Address of the user who initialized the market"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "message",
+            "docs": [
+              "Message describing the closing action"
             ],
             "type": "string"
           }
@@ -794,6 +928,45 @@ export type Yapdotfun = {
             "name": "vote",
             "docs": [
               "The user's prediction (true = YES, false = NO)"
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "rewardsWithdrawnEvent",
+      "docs": [
+        "Event emitted when rewards are withdrawn from a market"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "marketId",
+            "docs": [
+              "ID of the market the rewards are from"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "user",
+            "docs": [
+              "Address of the user who withdrew the rewards"
+            ],
+            "type": "string"
+          },
+          {
+            "name": "rewards",
+            "docs": [
+              "Amount of rewards withdrawn"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bet",
+            "docs": [
+              "The outcome the user bet on (YES/NO)"
             ],
             "type": "bool"
           }

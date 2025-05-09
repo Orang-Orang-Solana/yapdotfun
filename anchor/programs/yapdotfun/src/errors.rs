@@ -50,4 +50,11 @@ pub enum YapdotfunError {
     /// This error occurs when a user tries to sell shares but has none in their account.
     #[msg("No shares to sell")]
     NoSharesToSell,
+
+    /// Error returned when attempting to withdraw rewards with no shares
+    ///
+    /// This error occurs when a user tries to withdraw rewards but has no shares
+    /// or there are no total shares in the pool.
+    #[msg("No shares available for rewards")]
+    NoShares,
 }

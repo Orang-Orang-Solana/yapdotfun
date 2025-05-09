@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "test:single": "anchor test -- --testNamePattern='$1'"
+  }
+}

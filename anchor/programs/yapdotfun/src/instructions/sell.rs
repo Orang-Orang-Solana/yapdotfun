@@ -1,5 +1,5 @@
-use crate::{errors::YapdotfunError, state::*};
-use anchor_lang::{prelude::*, solana_program::native_token::LAMPORTS_PER_SOL};
+use crate::{errors::YapdotfunError, state::*, utils::*};
+use anchor_lang::prelude::*;
 
 /// Accounts required for the sell instruction
 #[derive(Accounts)]
@@ -53,9 +53,9 @@ pub struct Sell<'info> {
 /// * `NoSharesToSell` - If trying to sell 0 shares
 /// * `NotEnoughShares` - If user doesn't have enough shares of the specified type
 pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
-    // Ensure the market is not closed
+    // Ensure the market is open
     require!(
-        ctx.accounts.market.status == MarketStatus::Closed,
+        ctx.accounts.market.status == MarketStatus::Open,
         YapdotfunError::MarketClosed
     );
 
@@ -68,29 +68,72 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
     // Verify the user is selling the correct type of shares (YES/NO)
     require!(market_voter.vote == bet, YapdotfunError::NotEnoughShares);
 
-    // Calculate the SOL amount to return based on shares
-    let amount = shares * 1_000 / LAMPORTS_PER_SOL;
+    // Calculate the total shares the user owns based on their amount
+    let user_shares = market_voter.amount.into_shares();
+
+    // Verify the user has enough shares to sell
+    require!(user_shares >= shares, YapdotfunError::NotEnoughShares);
+
+    // Calculate the SOL amount to return based on the original purchase price ratio
+    // This is more fair than a fixed conversion rate
+    let market_metadata = &ctx.accounts.market_metadata;
+    let amount = if bet {
+        // For YES shares, calculate based on total yes assets and shares
+        if market_metadata.total_yes_shares == 0 {
+            0
+        } else {
+            (market_metadata.total_yes_assets as u128)
+                .checked_mul(shares as u128)
+                .unwrap()
+                .checked_div(market_metadata.total_yes_shares as u128)
+                .unwrap() as u64
+        }
+    } else {
+        // For NO shares, calculate based on total no assets and shares
+        if market_metadata.total_no_shares == 0 {
+            0
+        } else {
+            (market_metadata.total_no_assets as u128)
+                .checked_mul(shares as u128)
+                .unwrap()
+                .checked_div(market_metadata.total_no_shares as u128)
+                .unwrap() as u64
+        }
+    };
+
+    // Require that the amount is greater than zero
+    require!(amount > 0, YapdotfunError::NoSharesToSell);
 
     // Update market metadata based on the vote direction
     match bet {
         true => {
             let market_metadata_account = &mut ctx.accounts.market_metadata;
-            market_metadata_account.total_yes_assets -= amount;
-            market_metadata_account.total_yes_shares -= shares;
-            market_metadata_account.total_rewards -= amount;
+            market_metadata_account.total_yes_assets = market_metadata_account
+                .total_yes_assets
+                .saturating_sub(amount);
+            market_metadata_account.total_yes_shares = market_metadata_account
+                .total_yes_shares
+                .saturating_sub(shares);
+
+            // Don't reduce total rewards - those remain in the pool for winners
         }
         false => {
             let market_metadata_account = &mut ctx.accounts.market_metadata;
-            market_metadata_account.total_no_assets -= amount;
-            market_metadata_account.total_no_shares -= shares;
-            market_metadata_account.total_rewards -= amount;
+            market_metadata_account.total_no_assets = market_metadata_account
+                .total_no_assets
+                .saturating_sub(amount);
+            market_metadata_account.total_no_shares = market_metadata_account
+                .total_no_shares
+                .saturating_sub(shares);
+
+            // Don't reduce total rewards - those remain in the pool for winners
         }
     };
 
     // Transfer SOL from market to user
     let from = ctx.accounts.market.to_account_info();
     let to = ctx.accounts.signer.to_account_info();
-    let _ = crate::transfer_sol(ctx.accounts.system_program.to_owned(), from, to, amount);
+    transfer_sol(ctx.accounts.system_program.to_owned(), from, to, amount)?;
 
     Ok(())
 }
