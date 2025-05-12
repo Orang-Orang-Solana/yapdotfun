@@ -1,13 +1,11 @@
 'use client'
 
-import { addDays, format } from 'date-fns'
-import { CalendarIcon, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import * as React from 'react'
 import { toast } from 'sonner'
 
-import { Calendar } from '@/components/ui/calendar'
 import {
   Dialog,
   DialogContent,
@@ -16,25 +14,17 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
+import { AnchorError, BN } from '@coral-xyz/anchor'
+import { SendTransactionError } from '@solana/web3.js'
 
 import { ClusterUiSelect } from '../cluster/cluster-ui'
 import { WalletButton } from '../solana/solana-provider'
 import { Button } from '../ui/button'
+import { Calendar } from '../ui/calendar'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
+import { useTransactionToast } from '../ui/ui-layout'
 
 const links: { label: string; path: string }[] = [
   { label: 'Yapping', path: '/yapping' },
@@ -46,6 +36,10 @@ export default function Header() {
   const [date, setDate] = React.useState<Date>()
   const [image, setImage] = React.useState<File>()
   const [description, setDescription] = React.useState<string>('')
+  const [open, setOpen] = React.useState<boolean>(false)
+  const { initializeMarket } = useYappingMarketActions()
+  const transactionToast = useTransactionToast()
+  const [uploading, setUploading] = React.useState<boolean>(false)
 
   async function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -53,42 +47,99 @@ export default function Header() {
       setImage(file)
     }
   }
-  // async function handleDescriptionChange(
-  //   event: React.ChangeEvent<HTMLInputElement>
-  // ) {
-  //   const value = event.target.value
-  //   setDescription(value)
-  // }
-  // async function handleDateChange(date: Date) {
-  //   setDate(date)
-  // }
+
+  async function uploadFile(file: File) {
+    try {
+      if (!file) {
+        alert('No file selected')
+        return
+      }
+
+      setUploading(true)
+      const data = new FormData()
+      data.set('file', file)
+      const uploadRequest = await fetch('/api/files', {
+        method: 'POST',
+        body: data
+      })
+      const signedUrl = await uploadRequest.json()
+      setUploading(false)
+      return signedUrl
+    } catch (e) {
+      console.log(e)
+      setUploading(false)
+      alert('Trouble uploading file')
+    }
+  }
+
   async function CreatePrediction() {
     if (!image || !description || !date) {
       toast.error('Please fill all fields')
       return
     }
-    const formData = new FormData()
-    formData.append('image', image)
-    formData.append('description', description)
-    formData.append('date', date.toString())
-    toast.success('Prediction created', {
-      description: 'Your prediction has been created successfully'
-    })
-    // const response = await fetch('/api/predictions', {
-    //   method: 'POST',
-    //   body: formData
-    // })
-    // if (response.ok) {
-    //   toast.success('Prediction created')
-    // } else {
-    //   toast.error('Error creating prediction')
-    // }
+
+    let url = ''
+
+    try {
+      url = await uploadFile(image)
+      console.log(url, 'url')
+    } catch (error) {
+      console.log(error)
+      toast.error('Failed to upload file, please try again')
+      return
+    }
+
+    try {
+      const signature = await initializeMarket({
+        description,
+        imageUrl: url,
+        expectedResolutionDate: new BN(date.getTime() / 1000)
+      })
+
+      toast.success('Prediction created', {
+        description: 'Your prediction has been created successfully'
+      })
+
+      transactionToast(signature)
+
+      setOpen(false)
+      setDescription('')
+      setImage(undefined)
+      setDate(undefined)
+    } catch (error: unknown) {
+      console.error(error)
+      if (error instanceof AnchorError) {
+        toast.error('Failed to create prediction', {
+          description: error.error.errorMessage || error.message
+        })
+        return
+      }
+      if (error instanceof SendTransactionError) {
+        toast.error('Transaction failed', {
+          description:
+            'There was a problem sending the transaction. Please try again.'
+        })
+        return
+      }
+      if (typeof error === 'object' && error !== null && 'message' in error) {
+        toast.error('Unknown error', {
+          description:
+            (error as { message?: string }).message ||
+            'An unknown error occurred.'
+        })
+        return
+      }
+      toast.error('Unknown error', {
+        description: 'An unknown error occurred.'
+      })
+    }
   }
+
   return (
     <header className="p-3 xl:px-20 2xl:px-40 grid grid-cols-2 items-center">
       <section className="flex items-center gap-10">
         <Link href={'/'}>
-          <h1 className="font-bold uppercase">YapDotFun</h1>
+          <h1 className="font-bold uppercase">YAPPING</h1>
         </Link>
         <ul className="flex items-center gap-5">
           {links.map(({ label, path }) => (
@@ -105,7 +156,7 @@ export default function Header() {
               </Link>
             </li>
           ))}
-          <Dialog>
+          <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button variant={'outline'}>
                 <Plus />
@@ -139,47 +190,20 @@ export default function Header() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>End Prediction</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-[240px] justify-start text-left font-normal',
-                          !date && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon />
-                        {date ? format(date, 'PPP') : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      align="start"
-                      className="flex w-auto flex-col space-y-2 p-2"
-                    >
-                      <Select
-                        onValueChange={(value) =>
-                          setDate(addDays(new Date(), parseInt(value)))
+                  <div className="border rounded-md p-1">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={(selectedDate) => {
+                        if (selectedDate) {
+                          setDate(selectedDate)
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent position="popper">
-                          <SelectItem value="0">Today</SelectItem>
-                          <SelectItem value="1">Tomorrow</SelectItem>
-                          <SelectItem value="3">In 3 days</SelectItem>
-                          <SelectItem value="7">In a week</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <div className="rounded-md border">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={setDate}
-                        />
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                      }}
+                      className="w-full"
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                    />
+                  </div>
                 </div>
               </section>
               <section className="flex justify-end">

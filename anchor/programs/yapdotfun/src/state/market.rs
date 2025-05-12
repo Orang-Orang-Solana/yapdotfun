@@ -20,6 +20,9 @@ pub struct Market {
     /// This is used as part of the PDA seed for the market account
     #[max_len(0x200)]
     pub description: String,
+    /// Image url
+    #[max_len(0x900)]
+    pub image_url: String,
     /// Current status of the market (Open or Closed)
     pub status: MarketStatus,
     /// Final outcome of the market (true for Yes, false for No)

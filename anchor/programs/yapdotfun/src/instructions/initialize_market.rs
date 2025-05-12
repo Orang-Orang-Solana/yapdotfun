@@ -89,6 +89,7 @@ pub struct InitializeMarket<'info> {
 pub fn handler(
     ctx: Context<InitializeMarket>,
     description: String,
+    image_url: String,
     expected_resolution_date: u64,
 ) -> Result<()> {
     let market_account = &mut ctx.accounts.market;
@@ -96,6 +97,7 @@ pub fn handler(
 
     // Initialize market account with description and default values
     market_account.description = description;
+    market_account.image_url = image_url;
     market_account.status = default_market.status;
     market_account.answer = default_market.answer;
     market_account.initializer = ctx.accounts.signer.key().to_owned();

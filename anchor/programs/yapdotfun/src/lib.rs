@@ -14,7 +14,7 @@ use utils::*;
 pub const VALIDATOR_ADDRESS: Pubkey =
     Pubkey::from_str_const("7RKgZys14jFn3MzjnzcCeTifTiG6D5FNkSMED7bXBX35");
 
-declare_id!("Ci7oP5iPr7C3EStsLMo1U6twvaquLH9EkfCKYedeishi");
+declare_id!("k4aw18gNq8Z49MejeQoF6B8QnPqkSLehraenkVqC4be");
 
 /// Program for creating and interacting with prediction markets
 #[program]
@@ -30,9 +30,15 @@ pub mod yapping {
     pub fn initialize_market(
         ctx: Context<InitializeMarket>,
         description: String,
+        image_url: String,
         expected_resolution_date: u64,
     ) -> Result<()> {
-        instructions::initialize_market::handler(ctx, description, expected_resolution_date)
+        instructions::initialize_market::handler(
+            ctx,
+            description,
+            image_url,
+            expected_resolution_date,
+        )
     }
 
     /// Buy shares in a prediction market

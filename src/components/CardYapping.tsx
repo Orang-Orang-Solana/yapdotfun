@@ -21,6 +21,8 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
+import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
+import type { MarketAccount } from '@/types/yapping'
 
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -34,6 +36,8 @@ type BetType = {
 }
 
 export default function CardYapping() {
+  const { marketAccounts } = useYappingMarketFetchers()
+
   const [amount, setAmount] = useState<string>('')
   const [betting, setBetting] = useState<number | null>(null)
   async function chooseBetting(bet: number) {
@@ -47,22 +51,26 @@ export default function CardYapping() {
     toast(`Success Betting ${betting === 1 ? 'YES' : 'NO'} with ${amount} SOL`)
   }
 
-  if (!dummyBets)
+  if (!marketAccounts)
     return <p className="text-center text-muted-foreground my-10">Loading...</p>
 
   return (
     <div className="grid xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-      {dummyBets?.map((data: BetType, index: number) => {
-        const endBet = new Date(Number(data.endBet) * 1000)
+      {marketAccounts?.map((data: MarketAccount, index: number) => {
+        const endBet = new Date(
+          Number(data.account.expectedResolutionDate) * 1000
+        )
         return (
-          <Card key={index}>
+          <Card key={data.publicKey.toBase58()}>
             <CardHeader>
               <CardTitle>
                 {/* index + 1 diganti jadi address yapping bim */}
-                <Link href={`/yapping/${index + 1}`}>
+                <Link href={`/yapping/${data.publicKey.toBase58()}`}>
                   <Image
-                    src={data.image}
-                    alt={data.description}
+                    src={
+                      data.account.imageUrl ?? 'https://picsum.photos/200/300'
+                    }
+                    alt={data.account.description}
                     width={1080}
                     height={1080}
                     priority={true}
@@ -71,7 +79,7 @@ export default function CardYapping() {
                 </Link>
               </CardTitle>
               <CardDescription className="h-12 line-clamp-2 overflow-auto">
-                {data.description}
+                {data.account.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-5 flex-grow">
@@ -147,13 +155,17 @@ export default function CardYapping() {
                 <span className="text-muted-foreground font-normal">
                   Total Bets
                 </span>{' '}
-                {data.totalBet}
+                {data.totalYesAssets.toString()}
               </p>
               <p className="text-right font-medium">
                 <span className="text-muted-foreground font-normal">
                   End Bet
                 </span>{' '}
-                {endBet.toUTCString()}
+                {endBet.toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
               </p>
             </CardFooter>
           </Card>

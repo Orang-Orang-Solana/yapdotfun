@@ -7,7 +7,7 @@ skip-lint = false
 
 [programs.localnet]
 basic = "DL3maGWRfpBWRrgesM1AxYwfpkgRtoskW3Fxw3MbhApi"
-yapping = "Ci7oP5iPr7C3EStsLMo1U6twvaquLH9EkfCKYedeishi"
+yapping = "k4aw18gNq8Z49MejeQoF6B8QnPqkSLehraenkVqC4be"
 
 [registry]
 url = "https://api.apr.dev"

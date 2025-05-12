@@ -2,7 +2,7 @@
 
 import { atom, useAtomValue, useSetAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
-import { ReactNode, createContext, useContext } from 'react'
+import { type ReactNode, createContext, useContext } from 'react'
 import toast from 'react-hot-toast'
 
 import { Connection, clusterApiUrl } from '@solana/web3.js'

@@ -10,6 +10,12 @@ const nextConfig = {
       },
       {
         hostname: 'firebasestorage.googleapis.com'
+      },
+      {
+        hostname: 'picsum.photos'
+      },
+      {
+        hostname: '*.mypinata.cloud'
       }
     ]
   }

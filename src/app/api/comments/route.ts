@@ -1,7 +1,7 @@
 // Import necessary types and dependencies
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
-import { Prisma } from '@/app/generated/prisma'
+import type { Prisma } from '@/app/generated/prisma'
 import prisma from '@/lib/db/prisma'
 import { ApiError, handleApiError } from '@/lib/error/api-error'
 
