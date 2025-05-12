@@ -1,4 +1,4 @@
-use crate::errors::YapdotfunError;
+use crate::errors::YappingError;
 use crate::events::RewardsWithdrawnEvent;
 use crate::state::{Market, MarketMetadata, MarketStatus, MarketVoter};
 use crate::utils::{transfer_sol, IntoShares};
@@ -9,7 +9,7 @@ use anchor_lang::prelude::*;
 pub struct WithdrawRewards<'info> {
     /// The market account that contains outcome information
     #[account(
-        constraint = market.status == MarketStatus::Closed @ YapdotfunError::MarketNotClosed
+        constraint = market.status == MarketStatus::Closed @ YappingError::MarketNotClosed
     )]
     pub market: Account<'info, Market>,
 
@@ -86,7 +86,7 @@ pub fn handler(ctx: Context<WithdrawRewards>) -> Result<()> {
     let shares = market_voter.amount.into_shares();
 
     // Require that the user has shares to withdraw
-    require!(shares > 0, YapdotfunError::NoShares);
+    require!(shares > 0, YappingError::NoShares);
 
     let total_shares = if market.answer {
         market_metadata.total_yes_shares
@@ -95,7 +95,7 @@ pub fn handler(ctx: Context<WithdrawRewards>) -> Result<()> {
     };
 
     // Require that there are total shares in the pool
-    require!(total_shares > 0, YapdotfunError::NoShares);
+    require!(total_shares > 0, YappingError::NoShares);
 
     // Calculate rewards based on share proportion
     let total_rewards = market_metadata.total_rewards;

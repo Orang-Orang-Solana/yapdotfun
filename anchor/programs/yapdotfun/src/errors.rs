@@ -1,11 +1,11 @@
 use anchor_lang::error_code;
 
-/// Custom error types for the Yapdotfun program
+/// Custom error types for the Yapping program
 ///
 /// This enum defines all possible error conditions that can occur
 /// during the execution of program instructions.
 #[error_code]
-pub enum YapdotfunError {
+pub enum YappingError {
     /// Error returned when a user attempts to make a transaction with zero or negative amount
     ///
     /// This error is typically thrown in the buy instruction when the amount parameter

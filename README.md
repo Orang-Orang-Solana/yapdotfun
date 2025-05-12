@@ -1,4 +1,4 @@
-# legacy-yapdotfun
+# legacy-yapping
 
 ## Getting Started
 

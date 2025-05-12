@@ -1,4 +1,4 @@
-use crate::{errors::YapdotfunError, state::*, utils::*};
+use crate::{errors::YappingError, state::*, utils::*};
 use anchor_lang::prelude::*;
 
 /// Accounts required for the sell instruction
@@ -56,23 +56,23 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
     // Ensure the market is open
     require!(
         ctx.accounts.market.status == MarketStatus::Open,
-        YapdotfunError::MarketClosed
+        YappingError::MarketClosed
     );
 
     // Ensure the user has enough shares to sell
-    require!(shares > 0, YapdotfunError::NoSharesToSell);
+    require!(shares > 0, YappingError::NoSharesToSell);
 
     // Get the market voter account
     let market_voter = &ctx.accounts.market_voter;
 
     // Verify the user is selling the correct type of shares (YES/NO)
-    require!(market_voter.vote == bet, YapdotfunError::NotEnoughShares);
+    require!(market_voter.vote == bet, YappingError::NotEnoughShares);
 
     // Calculate the total shares the user owns based on their amount
     let user_shares = market_voter.amount.into_shares();
 
     // Verify the user has enough shares to sell
-    require!(user_shares >= shares, YapdotfunError::NotEnoughShares);
+    require!(user_shares >= shares, YappingError::NotEnoughShares);
 
     // Calculate the SOL amount to return based on the original purchase price ratio
     // This is more fair than a fixed conversion rate
@@ -102,7 +102,7 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
     };
 
     // Require that the amount is greater than zero
-    require!(amount > 0, YapdotfunError::NoSharesToSell);
+    require!(amount > 0, YappingError::NoSharesToSell);
 
     // Update market metadata based on the vote direction
     match bet {

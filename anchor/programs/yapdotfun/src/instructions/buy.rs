@@ -63,10 +63,10 @@ pub struct Buy<'info> {
 /// * Will also return an Anchor error if the user tries to vote twice (PDA already exists)
 pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
     // Ensure the amount is greater than zero
-    require!(amount > 0, crate::YapdotfunError::AmountConstraintViolated);
+    require!(amount > 0, crate::YappingError::AmountConstraintViolated);
     require!(
         ctx.accounts.market.status == crate::state::MarketStatus::Open,
-        crate::YapdotfunError::MarketClosed
+        crate::YappingError::MarketClosed
     );
 
     // Calculate shares based on the amount of SOL transferred

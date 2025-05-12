@@ -1,4 +1,4 @@
-# YapDotFun
+# Yapping
 
 This is a prediction market program where users can bet on the outcome of binary events.
 

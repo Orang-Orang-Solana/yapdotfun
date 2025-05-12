@@ -1,4 +1,4 @@
-use crate::errors::YapdotfunError;
+use crate::errors::YappingError;
 use crate::events::MarketClosedEvent;
 use crate::state::{Market, MarketMetadata, MarketStatus};
 use crate::VALIDATOR_ADDRESS;
@@ -55,7 +55,7 @@ pub fn handler(ctx: Context<ResolveMarket>, answer: bool) -> Result<()> {
     // Ensure the market is not already closed
     require!(
         ctx.accounts.market.status != MarketStatus::Closed,
-        YapdotfunError::MarketClosed
+        YappingError::MarketClosed
     );
 
     // Update market status and resolution details

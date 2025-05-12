@@ -1,5 +1,5 @@
 {
-  "name": "yapdotfun",
+  "name": "yapping",
   "version": "0.1.0",
   "scripts": {
     "anchor": "cd anchor && anchor",

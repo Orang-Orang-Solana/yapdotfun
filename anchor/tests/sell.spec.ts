@@ -4,9 +4,9 @@ import type { Program } from '@coral-xyz/anchor'
 import * as anchor from '@coral-xyz/anchor'
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
 
-import type { Yapdotfun } from '../target/types/yapdotfun'
+import type { Yapping } from '../target/types/yapping'
 
-describe('yapdotfun sell tests', () => {
+describe('yapping sell tests', () => {
   const provider = anchor.AnchorProvider.env()
   anchor.setProvider(provider)
 
@@ -15,7 +15,7 @@ describe('yapdotfun sell tests', () => {
     new Date().getTime() + 1000 * 60 * 60 * 24 * 30
   ) // 30 days from now
 
-  const program = anchor.workspace.Yapdotfun as Program<Yapdotfun>
+  const program = anchor.workspace.Yapping as Program<Yapping>
 
   // Helper to hash the description string as done in the contract
   function hashString(str: string) {

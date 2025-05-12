@@ -18,7 +18,7 @@ declare_id!("Ci7oP5iPr7C3EStsLMo1U6twvaquLH9EkfCKYedeishi");
 
 /// Program for creating and interacting with prediction markets
 #[program]
-pub mod yapdotfun {
+pub mod yapping {
     use super::*;
 
     /// Initialize a new prediction market with a description
