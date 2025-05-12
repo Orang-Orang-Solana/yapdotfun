@@ -1,10 +1,31 @@
 use crate::{errors::YappingError, state::*, utils::*};
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::hash::hash;
+
+/// Extension trait for String to provide hashing functionality (copied from initialize_market.rs)
+trait StringExt {
+    /// Converts a string to a hashed byte array
+    fn to_hashed_bytes(&self) -> Vec<u8>;
+}
+
+impl StringExt for String {
+    /// Hashes the string using SHA-256 and returns the resulting bytes
+    ///
+    /// # Returns
+    /// * `Vec<u8>` - 32-byte hash of the string
+    fn to_hashed_bytes(&self) -> Vec<u8> {
+        let hash_value = hash(self.as_bytes());
+        let hash = hash_value.to_bytes().to_vec();
+        assert_eq!(hash.len(), 32);
+        hash
+    }
+}
 
 /// Accounts required for the sell instruction
 #[derive(Accounts)]
+#[instruction(bet: bool, shares_to_sell: u64)]
 pub struct Sell<'info> {
-    /// The market account that will be updated
+    /// The market account that will be updated - this should be a PDA
     #[account(mut)]
     pub market: Account<'info, Market>,
 
@@ -43,16 +64,20 @@ pub struct Sell<'info> {
 
 /// Instruction handler for selling shares in a prediction market
 ///
+/// This function allows users to sell all or part of their shares in a prediction market.
+/// Users can specify any amount of shares to sell, as long as they own enough shares.
+/// After selling, the user retains any remaining shares and can sell them later.
+///
 /// # Arguments
 /// * `ctx` - The context for the instruction
 /// * `bet` - Whether selling YES (true) or NO (false) shares
-/// * `shares` - Number of shares to sell
+/// * `shares_to_sell` - Number of shares to sell
 ///
 /// # Errors
 /// * `MarketClosed` - If the market is already closed
 /// * `NoSharesToSell` - If trying to sell 0 shares
 /// * `NotEnoughShares` - If user doesn't have enough shares of the specified type
-pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
+pub fn handler(ctx: Context<Sell>, bet: bool, shares_to_sell: u64) -> Result<()> {
     // Ensure the market is open
     require!(
         ctx.accounts.market.status == MarketStatus::Open,
@@ -60,49 +85,57 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
     );
 
     // Ensure the user has enough shares to sell
-    require!(shares > 0, YappingError::NoSharesToSell);
+    require!(shares_to_sell > 0, YappingError::NoSharesToSell);
 
     // Get the market voter account
-    let market_voter = &ctx.accounts.market_voter;
+    let market_voter = &mut ctx.accounts.market_voter;
 
     // Verify the user is selling the correct type of shares (YES/NO)
     require!(market_voter.vote == bet, YappingError::NotEnoughShares);
 
-    // Calculate the total shares the user owns based on their amount
-    let user_shares = market_voter.amount.into_shares();
+    // Calculate the total shares the user owns
+    let user_total_shares = market_voter.amount.into_shares();
 
     // Verify the user has enough shares to sell
-    require!(user_shares >= shares, YappingError::NotEnoughShares);
+    require!(
+        user_total_shares >= shares_to_sell,
+        YappingError::NotEnoughShares
+    );
 
-    // Calculate the SOL amount to return based on the original purchase price ratio
-    // This is more fair than a fixed conversion rate
+    // Calculate price per share using the pricing mechanism
     let market_metadata = &ctx.accounts.market_metadata;
-    let amount = if bet {
-        // For YES shares, calculate based on total yes assets and shares
-        if market_metadata.total_yes_shares == 0 {
-            0
-        } else {
-            (market_metadata.total_yes_assets as u128)
-                .checked_mul(shares as u128)
-                .unwrap()
-                .checked_div(market_metadata.total_yes_shares as u128)
-                .unwrap() as u64
-        }
-    } else {
-        // For NO shares, calculate based on total no assets and shares
-        if market_metadata.total_no_shares == 0 {
-            0
-        } else {
-            (market_metadata.total_no_assets as u128)
-                .checked_mul(shares as u128)
-                .unwrap()
-                .checked_div(market_metadata.total_no_shares as u128)
-                .unwrap() as u64
-        }
-    };
+    let price_per_share = market_metadata.calculate_price_sell(bet, shares_to_sell);
+
+    // Calculate the total amount to return to the user
+    let sol_amount_to_return = (shares_to_sell as u128)
+        .checked_mul(price_per_share as u128)
+        .unwrap()
+        .checked_div(1_000_000) // Scale factor to match the buy calculation
+        .unwrap() as u64;
 
     // Require that the amount is greater than zero
-    require!(amount > 0, YappingError::NoSharesToSell);
+    require!(sol_amount_to_return > 0, YappingError::NoSharesToSell);
+
+    // Calculate the portion of the user's original investment to reduce
+    // This ensures that partial selling is properly accounted for
+    // Example: If user has 0.5 SOL invested (0.5 shares) and sells 0.1 shares (20%),
+    //          we reduce their investment by 20% = 0.1 SOL, leaving 0.4 SOL invested
+    let proportion_sold = (shares_to_sell as u128)
+        .checked_mul(u128::MAX)
+        .unwrap()
+        .checked_div(user_total_shares as u128)
+        .unwrap();
+
+    let sol_investment_to_reduce = (market_voter.amount as u128)
+        .checked_mul(proportion_sold)
+        .unwrap()
+        .checked_div(u128::MAX)
+        .unwrap() as u64;
+
+    // Update market voter account to reflect the reduced position
+    // Only reduce the amount, don't change the vote direction
+    // This allows users to sell part of their shares and keep the rest
+    market_voter.amount = market_voter.amount.saturating_sub(sol_investment_to_reduce);
 
     // Update market metadata based on the vote direction
     match bet {
@@ -110,10 +143,10 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
             let market_metadata_account = &mut ctx.accounts.market_metadata;
             market_metadata_account.total_yes_assets = market_metadata_account
                 .total_yes_assets
-                .saturating_sub(amount);
+                .saturating_sub(sol_amount_to_return);
             market_metadata_account.total_yes_shares = market_metadata_account
                 .total_yes_shares
-                .saturating_sub(shares);
+                .saturating_sub(shares_to_sell);
 
             // Don't reduce total rewards - those remain in the pool for winners
         }
@@ -121,19 +154,39 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares: u64) -> Result<()> {
             let market_metadata_account = &mut ctx.accounts.market_metadata;
             market_metadata_account.total_no_assets = market_metadata_account
                 .total_no_assets
-                .saturating_sub(amount);
+                .saturating_sub(sol_amount_to_return);
             market_metadata_account.total_no_shares = market_metadata_account
                 .total_no_shares
-                .saturating_sub(shares);
+                .saturating_sub(shares_to_sell);
 
             // Don't reduce total rewards - those remain in the pool for winners
         }
     };
 
-    // Transfer SOL from market to user
+    // The key issue is that the market account isn't set up as a PDA with signing authority.
+    // For now, let's use the market account's data to find the PDA seeds
+    // Hash the description string the same way it was done during initialization
+    let hashed_description = ctx.accounts.market.description.to_hashed_bytes();
+
+    let market_seed1 = b"market".as_ref();
+    let market_seed2 = hashed_description.as_slice();
+    let market_seeds = &[market_seed1, market_seed2];
+
+    // Calculate the bump from the market account's address
+    let bump = Pubkey::find_program_address(&[market_seed1, market_seed2], ctx.program_id).1;
+
+    // Transfer SOL from market to user using PDA signing
     let from = ctx.accounts.market.to_account_info();
     let to = ctx.accounts.signer.to_account_info();
-    transfer_sol(ctx.accounts.system_program.to_owned(), from, to, amount)?;
+
+    transfer_sol(
+        ctx.accounts.system_program.to_owned(),
+        from,
+        to,
+        sol_amount_to_return,
+        Some(market_seeds),
+        Some(bump),
+    )?;
 
     Ok(())
 }

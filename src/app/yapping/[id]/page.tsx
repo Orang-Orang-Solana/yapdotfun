@@ -1,36 +1,102 @@
+'use client'
+
+import { useParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
 import { ChartYapping } from '@/components/layout/yapping/detail/ChartYapping'
 import ChatYapping from '@/components/layout/yapping/detail/ChatYapping'
 import InfoYapping from '@/components/layout/yapping/detail/InfoYapping'
+import SellShares from '@/components/layout/yapping/detail/SellShares'
 import TradeYapping from '@/components/layout/yapping/detail/TradeYapping'
+import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
+import { useYappingMarketVoter } from '@/hooks/use-yapping-market-voter'
+import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 
-export default function page() {
-  const chanceBetYES = 25
-  const chanceBetNO = 75
+export default function YappingDetailPage() {
+  const params = useParams()
+  const marketId = typeof params.id === 'string' ? params.id : ''
+  const { marketAccount, marketAccounts } = useYappingMarketFetchers(marketId)
+  const { voterData } = useYappingMarketVoter(marketId)
+
+  // Calculate chances based on market data
+  const [chanceBetYES, setChanceBetYES] = useState(50)
+  const [chanceBetNO, setChanceBetNO] = useState(50)
+  const [totalLiquidity, setTotalLiquidity] = useState('0')
+
+  // Update chances only when market data changes
+  useEffect(() => {
+    // Don't run if we don't have market data yet
+    if (!marketAccount?.data || !marketAccounts) return
+
+    // Find the market metadata
+    const market = marketAccounts.find(
+      (m) => m.publicKey.toBase58() === marketId
+    )
+    if (!market || !market.totalYesAssets || !market.totalNoAssets) return
+
+    // Calculate YES/NO percentages
+    const totalYesAssets = market.totalYesAssets.toNumber()
+    const totalNoAssets = market.totalNoAssets.toNumber()
+    const totalAssets = totalYesAssets + totalNoAssets
+
+    if (totalAssets > 0) {
+      const yesPercentage = Math.round((totalYesAssets / totalAssets) * 100)
+      const noPercentage = 100 - yesPercentage
+
+      // Set the total liquidity in SOL
+      const liquidityInSol = (totalAssets / LAMPORTS_PER_SOL).toFixed(3)
+      setTotalLiquidity(liquidityInSol)
+
+      setChanceBetYES(yesPercentage)
+      setChanceBetNO(noPercentage)
+    }
+  }, [marketAccount?.data, marketAccounts, marketId])
+
+  if (!marketAccount?.data) {
+    return <div className="text-center p-10">Loading market data...</div>
+  }
+
+  const market = marketAccount.data
 
   return (
-    <main className="grid xl:grid-cols-3 gap-5 ">
+    <main className="grid xl:grid-cols-3 gap-5">
       <section className="xl:col-span-2 space-y-5">
-        <InfoYapping infoYapping={detailYapping} />
+        <InfoYapping
+          infoYapping={{
+            image: market.imageUrl,
+            description: market.description,
+            totalBet: `${(chanceBetYES / 100).toFixed(2)}/${(chanceBetNO / 100).toFixed(2)}`,
+            startBet: 'N/A',
+            endBet: new Date(
+              Number(market.expectedResolutionDate) * 1000
+            ).toISOString(),
+            liquidity: `${totalLiquidity} SOL`
+          }}
+        />
         <ChartYapping chanceBetYES={chanceBetYES} chanceBetNO={chanceBetNO} />
       </section>
       <section className="space-y-5 h-fit">
-        <TradeYapping chanceBetYES={chanceBetYES} chanceBetNO={chanceBetNO} />
+        <TradeYapping
+          chanceBetYES={chanceBetYES}
+          chanceBetNO={chanceBetNO}
+          marketPublicKey={marketId}
+        />
+        {/* Add SellShares component if user has a position */}
+        {voterData && (
+          <SellShares
+            marketPublicKey={marketId}
+            userVote={voterData.vote}
+            userShares={voterData.shares}
+            userAmount={voterData.amount}
+          />
+        )}
         <ChatYapping messages={messages} />
       </section>
     </main>
   )
 }
 
-const detailYapping = {
-  image:
-    'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20225938.png?alt=media&token=7d31b80f-d7f7-4c00-aeb2-8af44ffd5924',
-  description: 'Will Ethereum price exceed $5000 by the end of 2025?',
-  totalBet: '19 SOL',
-  startBet: '1735689600',
-  endBet: '1766908800',
-  liquidity: '$2500'
-}
-
+// Mock data for the chat
 const messages = [
   {
     id: '1',

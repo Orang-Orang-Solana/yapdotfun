@@ -3,6 +3,26 @@ use crate::events::RewardsWithdrawnEvent;
 use crate::state::{Market, MarketMetadata, MarketStatus, MarketVoter};
 use crate::utils::{transfer_sol, IntoShares};
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::hash::hash;
+
+/// Extension trait for String to provide hashing functionality (copied from initialize_market.rs)
+trait StringExt {
+    /// Converts a string to a hashed byte array
+    fn to_hashed_bytes(&self) -> Vec<u8>;
+}
+
+impl StringExt for String {
+    /// Hashes the string using SHA-256 and returns the resulting bytes
+    ///
+    /// # Returns
+    /// * `Vec<u8>` - 32-byte hash of the string
+    fn to_hashed_bytes(&self) -> Vec<u8> {
+        let hash_value = hash(self.as_bytes());
+        let hash = hash_value.to_bytes().to_vec();
+        assert_eq!(hash.len(), 32);
+        hash
+    }
+}
 
 /// Accounts required for withdrawing rewards from a resolved market
 #[derive(Accounts)]
@@ -105,10 +125,27 @@ pub fn handler(ctx: Context<WithdrawRewards>) -> Result<()> {
         .checked_div(total_shares as u128)
         .unwrap() as u64;
 
-    // Transfer rewards to the user
+    // Hash the description string the same way it was done during initialization
+    let hashed_description = market.description.to_hashed_bytes();
+
+    let market_seed1 = b"market".as_ref();
+    let market_seed2 = hashed_description.as_slice();
+    let market_seeds = &[market_seed1, market_seed2];
+
+    // Calculate the bump from the market account's address
+    let bump = Pubkey::find_program_address(&[market_seed1, market_seed2], ctx.program_id).1;
+
+    // Transfer rewards to the user with PDA signing
     let from = market.to_account_info();
     let to = ctx.accounts.user.to_account_info();
-    transfer_sol(ctx.accounts.system_program.to_owned(), from, to, rewards)?;
+    transfer_sol(
+        ctx.accounts.system_program.to_owned(),
+        from,
+        to,
+        rewards,
+        Some(market_seeds),
+        Some(bump),
+    )?;
 
     // Emit event for tracking reward withdrawals
     emit!(RewardsWithdrawnEvent {

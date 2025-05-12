@@ -1,4 +1,4 @@
-use crate::{state::*, utils::IntoShares};
+use crate::{state::*, utils::*};
 use anchor_lang::prelude::*;
 
 /// Accounts required for the buy instruction
@@ -69,9 +69,20 @@ pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
         crate::YappingError::MarketClosed
     );
 
-    // Calculate shares based on the amount of SOL transferred
-    let shares = amount.into_shares();
-    dbg!("shares", shares);
+    // Calculate price per share using our pricing mechanism
+    let market_metadata = &ctx.accounts.market_metadata;
+    let price_per_share = market_metadata.calculate_price_buy(bet, amount);
+
+    // Calculate shares based on amount and price
+    let shares = if price_per_share == 0 {
+        0
+    } else {
+        (amount as u128)
+            .checked_mul(1_000_000) // Scaling factor for precision
+            .unwrap()
+            .checked_div(price_per_share as u128)
+            .unwrap() as u64
+    };
 
     // Update market metadata based on the vote direction
     match bet {
@@ -97,7 +108,14 @@ pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
     // Transfer SOL from the signer to the market account
     let from = ctx.accounts.signer.to_account_info();
     let to = ctx.accounts.market.to_account_info();
-    let _ = crate::transfer_sol(ctx.accounts.system_program.to_owned(), from, to, amount);
+    let _ = crate::transfer_sol(
+        ctx.accounts.system_program.to_owned(),
+        from,
+        to,
+        amount,
+        None,
+        None,
+    );
 
     Ok(())
 }

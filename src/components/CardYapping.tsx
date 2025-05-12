@@ -21,8 +21,12 @@ import {
   DialogTitle,
   DialogTrigger
 } from '@/components/ui/dialog'
+import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
 import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
 import type { MarketAccount } from '@/types/yapping'
+import { BN } from '@coral-xyz/anchor'
+import { useWallet } from '@solana/wallet-adapter-react'
+import { LAMPORTS_PER_SOL, type PublicKey } from '@solana/web3.js'
 
 import { Button } from './ui/button'
 import { Input } from './ui/input'
@@ -37,18 +41,50 @@ type BetType = {
 
 export default function CardYapping() {
   const { marketAccounts } = useYappingMarketFetchers()
+  const { buy } = useYappingMarketActions()
+  const { connected } = useWallet()
 
   const [amount, setAmount] = useState<string>('')
   const [betting, setBetting] = useState<number | null>(null)
-  async function chooseBetting(bet: number) {
+  const [selectedMarket, setSelectedMarket] = useState<PublicKey | null>(null)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+
+  function chooseBetting(bet: number, marketPublicKey: PublicKey) {
     setBetting(bet)
-    console.log(`You chose: ${bet === 1 ? 'YES' : 'NO'}`)
+    setSelectedMarket(marketPublicKey)
+    console.log(
+      `You chose: ${bet === 1 ? 'YES' : 'NO'} for market ${marketPublicKey.toBase58()}`
+    )
   }
 
   async function submitBetting() {
-    console.log(amount)
-    console.log('Betting:', betting)
-    toast(`Success Betting ${betting === 1 ? 'YES' : 'NO'} with ${amount} SOL`)
+    if (!amount || !connected || !selectedMarket) {
+      toast.error('Please connect your wallet and enter an amount')
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      // Convert amount from SOL to lamports
+      const lamports = new BN(Number.parseFloat(amount) * LAMPORTS_PER_SOL)
+
+      // Call the buy function from our hook
+      await buy({
+        marketPDA: selectedMarket,
+        bet: betting === 1, // true for YES, false for NO
+        amount: lamports
+      })
+
+      // Reset form
+      setAmount('')
+      setBetting(null)
+      setSelectedMarket(null)
+    } catch (error) {
+      console.error('Betting error:', error)
+      toast.error('Failed to place bet. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (!marketAccounts)
@@ -64,7 +100,6 @@ export default function CardYapping() {
           <Card key={data.publicKey.toBase58()}>
             <CardHeader>
               <CardTitle>
-                {/* index + 1 diganti jadi address yapping bim */}
                 <Link href={`/yapping/${data.publicKey.toBase58()}`}>
                   <Image
                     src={
@@ -85,7 +120,12 @@ export default function CardYapping() {
             <CardContent className="grid grid-cols-2 gap-5 flex-grow">
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button onClick={() => chooseBetting(1)}>YES</Button>
+                  <Button
+                    onClick={() => chooseBetting(1, data.publicKey)}
+                    disabled={!connected}
+                  >
+                    YES
+                  </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
@@ -102,13 +142,17 @@ export default function CardYapping() {
                         type="number"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
+                        disabled={isLoading}
                       />
                       <span className="bg-black border p-1 px-3 font-semibold rounded-md absolute right-0">
                         SOL
                       </span>
                     </div>
-                    <Button onClick={submitBetting} disabled={!amount}>
-                      Confirm
+                    <Button
+                      onClick={submitBetting}
+                      disabled={!amount || isLoading || !connected}
+                    >
+                      {isLoading ? 'Confirming...' : 'Confirm'}
                     </Button>
                   </section>
                 </DialogContent>
@@ -118,7 +162,8 @@ export default function CardYapping() {
                 <DialogTrigger asChild>
                   <Button
                     variant={'secondary'}
-                    onClick={() => chooseBetting(0)}
+                    onClick={() => chooseBetting(0, data.publicKey)}
+                    disabled={!connected}
                   >
                     NO
                   </Button>
@@ -138,13 +183,17 @@ export default function CardYapping() {
                         placeholder="Amount"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
+                        disabled={isLoading}
                       />
                       <span className="bg-black border p-1 px-3 font-semibold rounded-md absolute right-0">
                         SOL
                       </span>
                     </div>
-                    <Button onClick={submitBetting} disabled={!amount}>
-                      Confirm
+                    <Button
+                      onClick={submitBetting}
+                      disabled={!amount || isLoading || !connected}
+                    >
+                      {isLoading ? 'Confirming...' : 'Confirm'}
                     </Button>
                   </section>
                 </DialogContent>
@@ -155,7 +204,8 @@ export default function CardYapping() {
                 <span className="text-muted-foreground font-normal">
                   Total Bets
                 </span>{' '}
-                {data.totalYesAssets.toString()}
+                {(data.totalYesAssets.toNumber() / LAMPORTS_PER_SOL).toFixed(3)}{' '}
+                SOL
               </p>
               <p className="text-right font-medium">
                 <span className="text-muted-foreground font-normal">

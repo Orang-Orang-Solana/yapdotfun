@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useCluster } from '@/components/cluster/cluster-data-access'
 import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { useTransactionToast } from '@/components/ui/ui-layout'
-import type * as anchor from '@coral-xyz/anchor'
+import type * as anchorTypes from '@coral-xyz/anchor'
 import {
   getYappingProgram,
   YAPPING_PROGRAM_ID as programId
@@ -31,7 +31,7 @@ export function useYappingMarketActions() {
     mutationFn: async (params: {
       description: string
       imageUrl: string
-      expectedResolutionDate: anchor.BN
+      expectedResolutionDate: anchorTypes.BN
     }) => {
       const descHash = await fetch(
         `/api/get-desc-hash?desc=${params.description}`
@@ -72,14 +72,116 @@ export function useYappingMarketActions() {
 
   const { mutateAsync: buy } = useMutation({
     mutationKey: ['yapping', 'buy', { cluster }],
-    mutationFn: (params: { bet: boolean; amount: anchor.BN }) =>
-      program.methods.buy(params.bet, params.amount).rpc()
+    mutationFn: async (params: {
+      marketPDA: PublicKey
+      bet: boolean
+      amount: anchorTypes.BN
+    }) => {
+      if (!provider.wallet.publicKey) {
+        throw new Error('Wallet not connected')
+      }
+
+      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_metadata'), params.marketPDA.toBuffer()],
+        program.programId
+      )
+
+      const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('market_voter'),
+          provider.wallet.publicKey.toBuffer(),
+          params.marketPDA.toBuffer()
+        ],
+        program.programId
+      )
+
+      console.log({
+        marketPDA: params.marketPDA.toBase58(),
+        marketMetadataPDA: marketMetadataPDA.toBase58(),
+        marketVoterPDA: marketVoterPDA.toBase58(),
+        betting: params.bet ? 'YES' : 'NO',
+        amount: params.amount.toString()
+      })
+
+      try {
+        return await program.methods
+          .buy(params.bet, params.amount)
+          .accounts({
+            market: params.marketPDA,
+            signer: provider.wallet.publicKey
+          })
+          .rpc()
+      } catch (error) {
+        console.error('Error executing buy transaction:', error)
+        throw error
+      }
+    },
+    onSuccess: (signature) => {
+      transactionToast(signature)
+      toast.success('Your bet has been placed successfully!')
+    },
+    onError: (error) => {
+      toast.error('Failed to place bet')
+      console.error(error)
+    }
   })
 
   const { mutateAsync: sell } = useMutation({
     mutationKey: ['yapping', 'sell', { cluster }],
-    mutationFn: (params: { bet: boolean; shares: anchor.BN }) =>
-      program.methods.sell(params.bet, params.shares).rpc()
+    mutationFn: async (params: {
+      marketPDA: PublicKey
+      bet: boolean
+      shares: anchorTypes.BN
+    }) => {
+      if (!provider.wallet.publicKey) {
+        throw new Error('Wallet not connected')
+      }
+
+      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_metadata'), params.marketPDA.toBuffer()],
+        program.programId
+      )
+
+      const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('market_voter'),
+          provider.wallet.publicKey.toBuffer(),
+          params.marketPDA.toBuffer()
+        ],
+        program.programId
+      )
+
+      console.log({
+        marketPDA: params.marketPDA.toBase58(),
+        marketMetadataPDA: marketMetadataPDA.toBase58(),
+        marketVoterPDA: marketVoterPDA.toBase58(),
+        selling: params.bet ? 'YES' : 'NO',
+        shares: params.shares.toString()
+      })
+
+      try {
+        // Skip TypeScript's type checking by using a more direct approach
+        // @ts-ignore - Ignoring TypeScript for this call
+        return await program.methods
+          .sell(params.bet, params.shares)
+          .accounts({
+            market: params.marketPDA,
+            signer: provider.wallet.publicKey
+          })
+          .rpc()
+      } catch (error) {
+        console.error('Error executing sell transaction:', error)
+        throw error
+      }
+    },
+    onSuccess: (signature) => {
+      transactionToast(signature)
+      toast.success('Your shares have been sold successfully!')
+    },
+    onError: (error) => {
+      toast.error('Failed to sell shares')
+      console.error(error)
+    }
   })
 
   // commented coz only validator can resolve market

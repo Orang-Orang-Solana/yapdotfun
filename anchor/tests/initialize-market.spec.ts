@@ -52,7 +52,11 @@ describe('yapping initialize market tests', () => {
 
     // Initialize market
     await program.methods
-      .initializeMarket(description, expectedResolutionDate)
+      .initializeMarket(
+        description,
+        'https://picsum.photos/200/300',
+        expectedResolutionDate
+      )
       .accounts({
         market: marketPDA,
         signer: user
@@ -91,7 +95,11 @@ describe('yapping initialize market tests', () => {
     try {
       // Try to initialize with empty description (should fail)
       await program.methods
-        .initializeMarket(description, expectedResolutionDate)
+        .initializeMarket(
+          description,
+          'https://picsum.photos/200/300',
+          expectedResolutionDate
+        )
         .accounts({
           market: marketPDA,
           signer: user
@@ -116,7 +124,11 @@ describe('yapping initialize market tests', () => {
 
     // Initialize market first time
     await program.methods
-      .initializeMarket(description, expectedResolutionDate)
+      .initializeMarket(
+        description,
+        'https://picsum.photos/200/300',
+        expectedResolutionDate
+      )
       .accounts({
         market: marketPDA,
         signer: user
@@ -126,7 +138,11 @@ describe('yapping initialize market tests', () => {
     try {
       // Try to initialize with same description (should fail)
       await program.methods
-        .initializeMarket(description, expectedResolutionDate)
+        .initializeMarket(
+          description,
+          'https://picsum.photos/200/300',
+          expectedResolutionDate
+        )
         .accounts({
           market: marketPDA,
           signer: user
@@ -158,7 +174,11 @@ describe('yapping initialize market tests', () => {
 
     // Initialize market 1
     await program.methods
-      .initializeMarket(description1, expectedResolutionDate)
+      .initializeMarket(
+        description1,
+        'https://picsum.photos/200/300',
+        expectedResolutionDate
+      )
       .accounts({
         market: marketPDA1,
         signer: user
@@ -167,7 +187,11 @@ describe('yapping initialize market tests', () => {
 
     // Initialize market 2
     await program.methods
-      .initializeMarket(description2, expectedResolutionDate)
+      .initializeMarket(
+        description2,
+        'https://picsum.photos/200/300',
+        expectedResolutionDate
+      )
       .accounts({
         market: marketPDA2,
         signer: user
@@ -199,7 +223,11 @@ describe('yapping initialize market tests', () => {
 
     // Initialize market
     await program.methods
-      .initializeMarket(description, expectedResolutionDate)
+      .initializeMarket(
+        description,
+        'https://picsum.photos/200/300',
+        expectedResolutionDate
+      )
       .accounts({
         market: marketPDA,
         signer: user
