@@ -1,23 +1,23 @@
 {
-  "address": "YappeTaxE8txMK7LwUuFBswCvnktievP7f3U5c5tZwB",
+  "address": "DL3maGWRfpBWRrgesM1AxYwfpkgRtoskW3Fxw3MbhApi",
   "metadata": {
-    "name": "yapdotfun",
+    "name": "basic",
     "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
   "instructions": [
     {
-      "name": "initialize",
+      "name": "greet",
       "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
+        203,
+        194,
+        3,
+        150,
+        228,
+        58,
+        181,
+        62
       ],
       "accounts": [],
       "args": []

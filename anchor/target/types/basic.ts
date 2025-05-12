@@ -2,28 +2,28 @@
  * Program IDL in camelCase format in order to be used in JS/TS.
  *
  * Note that this is only a type helper and is not the actual IDL. The original
- * IDL can be found at `target/idl/yapdotfun.json`.
+ * IDL can be found at `target/idl/basic.json`.
  */
-export type Yapdotfun = {
-  "address": "YappeTaxE8txMK7LwUuFBswCvnktievP7f3U5c5tZwB",
+export type Basic = {
+  "address": "DL3maGWRfpBWRrgesM1AxYwfpkgRtoskW3Fxw3MbhApi",
   "metadata": {
-    "name": "yapdotfun",
+    "name": "basic",
     "version": "0.1.0",
     "spec": "0.1.0",
     "description": "Created with Anchor"
   },
   "instructions": [
     {
-      "name": "initialize",
+      "name": "greet",
       "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
+        203,
+        194,
+        3,
+        150,
+        228,
+        58,
+        181,
+        62
       ],
       "accounts": [],
       "args": []

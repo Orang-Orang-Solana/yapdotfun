@@ -1,18 +1,19 @@
 [toolchain]
-anchor_version = "0.30.1"
+anchor_version = "0.31.1"
 
 [features]
 resolution = true
 skip-lint = false
 
 [programs.localnet]
-yapdotfun = "YappeTaxE8txMK7LwUuFBswCvnktievP7f3U5c5tZwB"
+basic = "DL3maGWRfpBWRrgesM1AxYwfpkgRtoskW3Fxw3MbhApi"
+yapping = "Ci7oP5iPr7C3EStsLMo1U6twvaquLH9EkfCKYedeishi"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
