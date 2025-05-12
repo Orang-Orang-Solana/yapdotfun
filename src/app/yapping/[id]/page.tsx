@@ -73,7 +73,11 @@ export default function YappingDetailPage() {
             liquidity: `${totalLiquidity} SOL`
           }}
         />
-        <ChartYapping chanceBetYES={chanceBetYES} chanceBetNO={chanceBetNO} />
+        <ChartYapping
+          chanceBetYES={chanceBetYES}
+          chanceBetNO={chanceBetNO}
+          marketPublicKey={marketId}
+        />
       </section>
       <section className="space-y-5 h-fit">
         <TradeYapping
