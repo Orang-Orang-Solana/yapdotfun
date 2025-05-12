@@ -27,6 +27,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
 
 # vercel
 .vercel
@@ -39,3 +40,8 @@ tmp
 /test-ledger
 
 **/target
+# prisma
+/src/app/generated/prisma
+
+# ai-digest
+codebase.md
