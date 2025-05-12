@@ -163,17 +163,16 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares_to_sell: u64) -> Result<()>
         }
     };
 
-    // The key issue is that the market account isn't set up as a PDA with signing authority.
-    // For now, let's use the market account's data to find the PDA seeds
     // Hash the description string the same way it was done during initialization
     let hashed_description = ctx.accounts.market.description.to_hashed_bytes();
 
-    let market_seed1 = b"market".as_ref();
+    // Prepare seeds for PDA signing
+    let market_seed1 = b"market";
     let market_seed2 = hashed_description.as_slice();
-    let market_seeds = &[market_seed1, market_seed2];
+    let seeds = &[market_seed1 as &[u8], market_seed2 as &[u8]];
 
-    // Calculate the bump from the market account's address
-    let bump = Pubkey::find_program_address(&[market_seed1, market_seed2], ctx.program_id).1;
+    // Calculate the bump for the market PDA
+    let (_, bump) = Pubkey::find_program_address(&[market_seed1, market_seed2], ctx.program_id);
 
     // Transfer SOL from market to user using PDA signing
     let from = ctx.accounts.market.to_account_info();
@@ -184,7 +183,7 @@ pub fn handler(ctx: Context<Sell>, bet: bool, shares_to_sell: u64) -> Result<()>
         from,
         to,
         sol_amount_to_return,
-        Some(market_seeds),
+        Some(seeds),
         Some(bump),
     )?;
 

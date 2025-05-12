@@ -7,10 +7,18 @@ import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTransactionToast } from '@/components/ui/ui-layout'
+import * as anchor from '@coral-xyz/anchor'
 import { BN } from '@coral-xyz/anchor'
 import { getYappingProgram } from '@project/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
-import { LAMPORTS_PER_SOL, PublicKey, Transaction } from '@solana/web3.js'
+import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
+
+// Declare global function for TypeScript
+declare global {
+  interface Window {
+    refreshMarketChart?: (marketId: string) => void
+  }
+}
 
 // Constant to match the backend's share calculation
 const LAMPORTS_PER_SHARE = 1_000_000
@@ -20,6 +28,18 @@ interface SellSharesProps {
   userVote?: boolean | null
   userShares?: number
   userAmount?: number
+}
+
+// Helper to hash a string in the same way as the Rust code
+async function hashString(str: string): Promise<Buffer> {
+  // Create a UTF-8 encoded buffer from the string
+  const msgBuffer = new TextEncoder().encode(str)
+
+  // Hash it using the Web Crypto API (SHA-256)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+
+  // Convert to a Buffer
+  return Buffer.from(new Uint8Array(hashBuffer))
 }
 
 export default function SellShares({
@@ -72,12 +92,7 @@ export default function SellShares({
       // Prepare market PublicKey
       const marketPDA = new PublicKey(marketPublicKey)
 
-      // Find the PDAs needed for the instruction
-      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('market_metadata'), marketPDA.toBuffer()],
-        program.programId
-      )
-
+      // Find market voter PDA
       const [marketVoterPDA] = PublicKey.findProgramAddressSync(
         [
           Buffer.from('market_voter'),
@@ -87,35 +102,38 @@ export default function SellShares({
         program.programId
       )
 
-      // Create the instruction directly
-      const sellInstruction = await program.methods
-        .sell(!!userVote, shares)
-        .accounts({
-          market: marketPDA
-          // Use this approach to bypass TypeScript interface issues
-        })
-        .instruction()
+      // Find market metadata PDA
+      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_metadata'), marketPDA.toBuffer()],
+        program.programId
+      )
 
-      // Manually add all accounts
-      sellInstruction.keys = [
-        { pubkey: marketPDA, isWritable: true, isSigner: false },
-        { pubkey: marketMetadataPDA, isWritable: true, isSigner: false },
-        { pubkey: marketVoterPDA, isWritable: true, isSigner: false },
-        { pubkey: provider.wallet.publicKey, isWritable: true, isSigner: true },
-        {
-          pubkey: new PublicKey('11111111111111111111111111111111'),
-          isWritable: false,
-          isSigner: false
+      // Use the raw RPC call (this bypasses TypeScript's type checking)
+      const tx = await program.rpc.sell(!!userVote, shares, {
+        accounts: {
+          market: marketPDA,
+          marketMetadata: marketMetadataPDA,
+          marketVoter: marketVoterPDA,
+          signer: provider.wallet.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId
         }
-      ]
-
-      // Create and send the transaction
-      const transaction = new Transaction().add(sellInstruction)
-      const signature = await provider.sendAndConfirm(transaction)
+      })
 
       // Show success message
-      transactionToast(signature)
+      transactionToast(tx)
       toast.success('Shares sold successfully!')
+
+      // Trigger UI updates by dispatching a custom event
+      window.dispatchEvent(
+        new CustomEvent('market-update', {
+          detail: { marketId: marketPublicKey }
+        })
+      )
+
+      // Also try to use the global refresh function if available
+      if (window.refreshMarketChart) {
+        window.refreshMarketChart(marketPublicKey)
+      }
 
       // Reset form
       setSharesToSell('')

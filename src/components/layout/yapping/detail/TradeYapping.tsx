@@ -10,6 +10,13 @@ import { BN } from '@coral-xyz/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
 
+// Declare global function for TypeScript
+declare global {
+  interface Window {
+    refreshMarketChart?: (marketId: string) => void
+  }
+}
+
 export default function TradeYapping({
   chanceBetYES,
   chanceBetNO,
@@ -90,6 +97,23 @@ export default function TradeYapping({
         bet: betting === 1, // true for YES, false for NO
         amount: lamports
       })
+
+      // Notify success
+      toast.success(
+        `Successfully placed ${betting === 1 ? 'YES' : 'NO'} bet of ${amount} SOL`
+      )
+
+      // Trigger UI updates by dispatching a custom event
+      window.dispatchEvent(
+        new CustomEvent('market-update', {
+          detail: { marketId: marketPublicKey }
+        })
+      )
+
+      // Also try to use the global refresh function if available
+      if (window.refreshMarketChart) {
+        window.refreshMarketChart(marketPublicKey)
+      }
 
       // Reset form
       setAmount('')

@@ -8,6 +8,7 @@ import ChatYapping from '@/components/layout/yapping/detail/ChatYapping'
 import InfoYapping from '@/components/layout/yapping/detail/InfoYapping'
 import SellShares from '@/components/layout/yapping/detail/SellShares'
 import TradeYapping from '@/components/layout/yapping/detail/TradeYapping'
+import WithdrawRewards from '@/components/layout/yapping/detail/WithdrawRewards'
 import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
 import { useYappingMarketVoter } from '@/hooks/use-yapping-market-voter'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
@@ -92,6 +93,15 @@ export default function YappingDetailPage() {
             userVote={voterData.vote}
             userShares={voterData.shares}
             userAmount={voterData.amount}
+          />
+        )}
+        {/* Add WithdrawRewards component for closed markets */}
+        {voterData && market.status.toString().toLowerCase() === 'closed' && (
+          <WithdrawRewards
+            marketPublicKey={marketId}
+            marketStatus={market.status.toString()}
+            userVote={voterData.vote}
+            marketOutcome={market.answer}
           />
         )}
         <ChatYapping messages={messages} />

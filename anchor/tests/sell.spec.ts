@@ -38,18 +38,280 @@ describe('yapping sell tests', () => {
     await sleep(1000)
   })
 
-  // TODO: Fix these positive tests in a future update
-  // They're being skipped due to stability issues with concurrent test execution
-  it.skip('should allow selling YES position in a market', async () => {
-    // Test code removed for stability
+  // Updated positive tests to match current implementation
+  it('should allow selling YES position in a market', async () => {
+    const uniqueId = Math.random().toString().slice(2, 10)
+    const description = `Sell YES test ${uniqueId}`
+    const betAmount = new anchor.BN(0.5 * LAMPORTS_PER_SOL)
+
+    // Calculate expected shares based on 1_000_000 conversion rate
+    const expectedShares = betAmount.div(new anchor.BN(1_000_000))
+
+    // Find PDAs
+    const [marketPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market'), hashString(description)],
+      program.programId
+    )
+
+    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_voter'), user.toBuffer(), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    // Initialize market
+    await program.methods
+      .initializeMarket(
+        description,
+        'https://picsum.photos/200/300',
+        expectedResolutionDate
+      )
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Get initial balances
+    const initialUserBalance = await provider.connection.getBalance(user)
+    const initialMarketBalance = await provider.connection.getBalance(marketPDA)
+
+    // Buy YES position
+    await program.methods
+      .buy(true, betAmount)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Verify shares were created correctly
+    const metadataAfterBuy =
+      await program.account.marketMetadata.fetch(marketMetadataPDA)
+    expect(metadataAfterBuy.totalYesShares.toString()).toEqual(
+      expectedShares.toString()
+    )
+
+    // Sell the YES position
+    await program.methods
+      .sell(true, expectedShares)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Verify market state after selling
+    const metadataAfterSell =
+      await program.account.marketMetadata.fetch(marketMetadataPDA)
+
+    // After selling all shares, the yes shares should be 0
+    expect(metadataAfterSell.totalYesShares.toString()).toEqual('0')
+
+    // Verify user got their SOL back (roughly - we can't be exact due to fees and price calculations)
+    const finalUserBalance = await provider.connection.getBalance(user)
+    const userBalanceDiff = finalUserBalance - initialUserBalance
+
+    // User should have gotten back most of their SOL
+    // We use a lower threshold due to transaction fees and possible price changes
+    expect(userBalanceDiff).toBeGreaterThan(-betAmount.toNumber() * 0.2)
   })
 
-  it.skip('should allow selling NO position in a market', async () => {
-    // Test code removed for stability
+  it('should allow selling NO position in a market', async () => {
+    const uniqueId = Math.random().toString().slice(2, 10)
+    const description = `Sell NO test ${uniqueId}`
+    const betAmount = new anchor.BN(0.5 * LAMPORTS_PER_SOL)
+
+    // Calculate expected shares based on 1_000_000 conversion rate
+    const expectedShares = betAmount.div(new anchor.BN(1_000_000))
+
+    // Find PDAs
+    const [marketPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market'), hashString(description)],
+      program.programId
+    )
+
+    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    // Initialize market
+    await program.methods
+      .initializeMarket(
+        description,
+        'https://picsum.photos/200/300',
+        expectedResolutionDate
+      )
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Get initial balances
+    const initialUserBalance = await provider.connection.getBalance(user)
+
+    // Buy NO position
+    await program.methods
+      .buy(false, betAmount)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Verify shares were created correctly
+    const metadataAfterBuy =
+      await program.account.marketMetadata.fetch(marketMetadataPDA)
+    expect(metadataAfterBuy.totalNoShares.toString()).toEqual(
+      expectedShares.toString()
+    )
+
+    // Sell the NO position
+    await program.methods
+      .sell(false, expectedShares)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Verify market state after selling
+    const metadataAfterSell =
+      await program.account.marketMetadata.fetch(marketMetadataPDA)
+
+    // After selling all shares, the no shares should be 0
+    expect(metadataAfterSell.totalNoShares.toString()).toEqual('0')
+
+    // Verify user got their SOL back (roughly - we can't be exact due to fees and price calculations)
+    const finalUserBalance = await provider.connection.getBalance(user)
+    const userBalanceDiff = finalUserBalance - initialUserBalance
+
+    // User should have gotten back most of their SOL
+    // We use a lower threshold due to transaction fees and possible price changes
+    expect(userBalanceDiff).toBeGreaterThan(-betAmount.toNumber() * 0.2)
   })
 
-  it.skip('should allow selling partial shares', async () => {
-    // Test code removed for stability
+  it('should allow selling partial shares', async () => {
+    const uniqueId = Math.random().toString().slice(2, 10)
+    const description = `Partial shares test ${uniqueId}`
+    const betAmount = new anchor.BN(1 * LAMPORTS_PER_SOL)
+
+    // Calculate expected shares based on 1_000_000 conversion rate
+    const totalExpectedShares = betAmount.div(new anchor.BN(1_000_000))
+    const partialShares = totalExpectedShares.div(new anchor.BN(2)) // Sell half the shares
+
+    // Find PDAs
+    const [marketPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market'), hashString(description)],
+      program.programId
+    )
+
+    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from('market_voter'), user.toBuffer(), marketPDA.toBuffer()],
+      program.programId
+    )
+
+    // Initialize market
+    await program.methods
+      .initializeMarket(
+        description,
+        'https://picsum.photos/200/300',
+        expectedResolutionDate
+      )
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Buy YES position
+    await program.methods
+      .buy(true, betAmount)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Verify initial shares
+    const metadataAfterBuy =
+      await program.account.marketMetadata.fetch(marketMetadataPDA)
+    expect(metadataAfterBuy.totalYesShares.toString()).toEqual(
+      totalExpectedShares.toString()
+    )
+
+    // Verify voter's initial amount
+    const voterBeforeSell =
+      await program.account.marketVoter.fetch(marketVoterPDA)
+    expect(voterBeforeSell.amount.toString()).toEqual(betAmount.toString())
+
+    // Sell half the shares
+    await program.methods
+      .sell(true, partialShares)
+      .accounts({
+        market: marketPDA,
+        signer: user
+      })
+      .rpc()
+
+    await sleep(1000)
+
+    // Verify market state after selling partial shares
+    const metadataAfterSell =
+      await program.account.marketMetadata.fetch(marketMetadataPDA)
+
+    // After selling half shares, should have half left
+    const remainingShares = totalExpectedShares.sub(partialShares)
+    expect(metadataAfterSell.totalYesShares.toString()).toEqual(
+      remainingShares.toString()
+    )
+
+    // Verify voter still has shares remaining
+    const voterAfterSell =
+      await program.account.marketVoter.fetch(marketVoterPDA)
+
+    // Voter's amount should be reduced roughly by half
+    // We allow some wiggle room due to rounding and proportion calculation
+    const halfAmount = betAmount.div(new anchor.BN(2))
+    const lowerBound = halfAmount.sub(new anchor.BN(0.05 * LAMPORTS_PER_SOL))
+    const upperBound = halfAmount.add(new anchor.BN(0.05 * LAMPORTS_PER_SOL))
+
+    expect(Number(voterAfterSell.amount.toString())).toBeGreaterThanOrEqual(
+      Number(lowerBound.toString())
+    )
+    expect(Number(voterAfterSell.amount.toString())).toBeLessThanOrEqual(
+      Number(upperBound.toString())
+    )
+
+    // Verify voter's vote direction is still correct
+    expect(voterAfterSell.vote).toEqual(true)
   })
 
   it('should not allow selling more shares than owned', async () => {

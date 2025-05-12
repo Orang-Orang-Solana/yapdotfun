@@ -128,12 +128,13 @@ pub fn handler(ctx: Context<WithdrawRewards>) -> Result<()> {
     // Hash the description string the same way it was done during initialization
     let hashed_description = market.description.to_hashed_bytes();
 
-    let market_seed1 = b"market".as_ref();
+    // Prepare seeds for PDA signing
+    let market_seed1 = b"market";
     let market_seed2 = hashed_description.as_slice();
-    let market_seeds = &[market_seed1, market_seed2];
+    let seeds = &[market_seed1 as &[u8], market_seed2 as &[u8]];
 
-    // Calculate the bump from the market account's address
-    let bump = Pubkey::find_program_address(&[market_seed1, market_seed2], ctx.program_id).1;
+    // Calculate the bump for the market PDA
+    let (_, bump) = Pubkey::find_program_address(&[market_seed1, market_seed2], ctx.program_id);
 
     // Transfer rewards to the user with PDA signing
     let from = market.to_account_info();
@@ -143,7 +144,7 @@ pub fn handler(ctx: Context<WithdrawRewards>) -> Result<()> {
         from,
         to,
         rewards,
-        Some(market_seeds),
+        Some(seeds),
         Some(bump),
     )?;
 

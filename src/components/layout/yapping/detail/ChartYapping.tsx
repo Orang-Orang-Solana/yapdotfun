@@ -1,6 +1,7 @@
 'use client'
 
 import { TrendingUp } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import {
@@ -16,7 +17,17 @@ import {
   ChartContainer,
   ChartTooltip
 } from '@/components/ui/chart'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+
+// Declare global function for TypeScript
+declare global {
+  interface Window {
+    refreshMarketChart?: (marketId: string) => void
+  }
+}
+
+// Query key for chart data
+export const CHART_DATA_QUERY_KEY = 'chart-data'
 
 // Chart configuration with enhanced colors
 const chartConfig = {
@@ -140,14 +151,57 @@ export function ChartYapping({
   chanceBetNO: number
   marketPublicKey: string
 }) {
-  const { data, isLoading, error } = useQuery<ChartDataResponse>({
-    queryKey: ['chart-data', marketPublicKey],
+  const queryClient = useQueryClient()
+
+  // Generate the full query key with the market ID - memoized to prevent it changing on rerenders
+  const queryKey = useMemo(
+    () => [CHART_DATA_QUERY_KEY, marketPublicKey],
+    [marketPublicKey]
+  )
+
+  const { data, isLoading, error, refetch } = useQuery<ChartDataResponse>({
+    queryKey,
     queryFn: () => fetchChartData(marketPublicKey),
     enabled: !!marketPublicKey,
-    refetchOnWindowFocus: false,
-    staleTime: 60000, // Data stays fresh for 1 minute
+    refetchOnWindowFocus: true,
+    staleTime: 30000, // Data stays fresh for 30 seconds
+    refetchInterval: 60000, // Poll for new data every minute
     retry: 1
   })
+
+  // Create a function to manually refresh chart data
+  // This can be called from other components after transactions
+  useEffect(() => {
+    // Define a function to handle market update events
+    const handleMarketUpdate = (event: CustomEvent) => {
+      if (event.detail?.marketId === marketPublicKey) {
+        // Immediately invalidate the query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey })
+      }
+    }
+
+    // Listen for custom market update events
+    window.addEventListener(
+      'market-update',
+      handleMarketUpdate as EventListener
+    )
+
+    // Define a global function that other components can call
+    window.refreshMarketChart = (marketId: string) => {
+      if (marketId === marketPublicKey) {
+        refetch()
+      }
+    }
+
+    return () => {
+      window.removeEventListener(
+        'market-update',
+        handleMarketUpdate as EventListener
+      )
+      // @ts-ignore - clean up the global function
+      window.refreshMarketChart = undefined
+    }
+  }, [marketPublicKey, queryClient, queryKey, refetch])
 
   // Format date for footer
   const getDateRange = () => {

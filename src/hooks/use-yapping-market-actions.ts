@@ -6,6 +6,7 @@ import { useCluster } from '@/components/cluster/cluster-data-access'
 import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { useTransactionToast } from '@/components/ui/ui-layout'
 import type * as anchorTypes from '@coral-xyz/anchor'
+import * as anchor from '@coral-xyz/anchor'
 import {
   getYappingProgram,
   YAPPING_PROGRAM_ID as programId
@@ -160,15 +161,16 @@ export function useYappingMarketActions() {
       })
 
       try {
-        // Skip TypeScript's type checking by using a more direct approach
-        // @ts-ignore - Ignoring TypeScript for this call
-        return await program.methods
-          .sell(params.bet, params.shares)
-          .accounts({
+        // Use lower-level rpc call to bypass TypeScript checking
+        return await program.rpc.sell(params.bet, params.shares, {
+          accounts: {
             market: params.marketPDA,
-            signer: provider.wallet.publicKey
-          })
-          .rpc()
+            marketMetadata: marketMetadataPDA,
+            marketVoter: marketVoterPDA,
+            signer: provider.wallet.publicKey,
+            systemProgram: anchor.web3.SystemProgram.programId
+          }
+        })
       } catch (error) {
         console.error('Error executing sell transaction:', error)
         throw error
@@ -193,7 +195,55 @@ export function useYappingMarketActions() {
 
   const { mutateAsync: withdrawRewards } = useMutation({
     mutationKey: ['yapping', 'withdrawRewards', { cluster }],
-    mutationFn: () => program.methods.withdrawRewards().rpc()
+    mutationFn: async (params: { marketPDA: PublicKey }) => {
+      if (!provider.wallet.publicKey) {
+        throw new Error('Wallet not connected')
+      }
+
+      // Find the market metadata PDA
+      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from('market_metadata'), params.marketPDA.toBuffer()],
+        program.programId
+      )
+
+      // Find the market voter PDA for the current user
+      const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('market_voter'),
+          provider.wallet.publicKey.toBuffer(),
+          params.marketPDA.toBuffer()
+        ],
+        program.programId
+      )
+
+      console.log({
+        marketPDA: params.marketPDA.toBase58(),
+        marketMetadataPDA: marketMetadataPDA.toBase58(),
+        marketVoterPDA: marketVoterPDA.toBase58(),
+        user: provider.wallet.publicKey.toBase58()
+      })
+
+      try {
+        return await program.methods
+          .withdrawRewards()
+          .accounts({
+            market: params.marketPDA,
+            user: provider.wallet.publicKey
+          })
+          .rpc()
+      } catch (error) {
+        console.error('Error executing withdraw rewards transaction:', error)
+        throw error
+      }
+    },
+    onSuccess: (signature) => {
+      transactionToast(signature)
+      toast.success('Rewards withdrawn successfully!')
+    },
+    onError: (error) => {
+      toast.error('Failed to withdraw rewards')
+      console.error(error)
+    }
   })
 
   return {

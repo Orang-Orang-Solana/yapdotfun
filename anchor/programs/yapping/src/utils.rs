@@ -22,32 +22,36 @@ pub(crate) fn transfer_sol<'info>(
     let ix =
         anchor_lang::solana_program::system_instruction::transfer(&from.key(), &to.key(), amount);
 
-    // Determine if we need to use signed or unsigned invocation
-    match seeds {
-        Some(seed_slice) => {
-            let bump_slice = &[bump.unwrap()];
-            let signer_seeds = [seed_slice, &[bump_slice]].concat();
+    if seeds.is_some() && bump.is_some() {
+        // Extract seeds
+        let seed_slice = seeds.unwrap();
+        let bump_val = bump.unwrap();
 
-            anchor_lang::solana_program::program::invoke_signed(
-                &ix,
-                &[
-                    from.to_account_info().clone(),
-                    to.to_account_info().clone(),
-                    system_program.to_account_info().clone(),
-                ],
-                &[&signer_seeds[..]],
-            )?;
-        }
-        None => {
-            anchor_lang::solana_program::program::invoke(
-                &ix,
-                &[
-                    from.to_account_info().clone(),
-                    to.to_account_info().clone(),
-                    system_program.to_account_info().clone(),
-                ],
-            )?;
-        }
+        // Create signer seeds with bump
+        let market_seed = seed_slice[0];
+        let hash_seed = seed_slice[1];
+        let bump_seed = &[bump_val];
+
+        // Execute with PDA signing
+        anchor_lang::solana_program::program::invoke_signed(
+            &ix,
+            &[
+                from.to_account_info().clone(),
+                to.to_account_info().clone(),
+                system_program.to_account_info().clone(),
+            ],
+            &[&[market_seed, hash_seed, bump_seed]],
+        )?;
+    } else {
+        // Execute without PDA signing
+        anchor_lang::solana_program::program::invoke(
+            &ix,
+            &[
+                from.to_account_info().clone(),
+                to.to_account_info().clone(),
+                system_program.to_account_info().clone(),
+            ],
+        )?;
     }
 
     Ok(())

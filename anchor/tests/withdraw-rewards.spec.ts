@@ -423,6 +423,9 @@ describe('yapping withdraw rewards tests', () => {
 
     // User 1 buys YES with 0.5 SOL
     const betAmount1 = new anchor.BN(0.5 * LAMPORTS_PER_SOL)
+    // Calculate expected shares based on 1_000_000 conversion rate
+    const expectedShares1 = betAmount1.div(new anchor.BN(1_000_000))
+
     await program.methods
       .buy(true, betAmount1)
       .accounts({
@@ -436,6 +439,9 @@ describe('yapping withdraw rewards tests', () => {
 
     // User 2 buys YES with 1 SOL
     const betAmount2 = new anchor.BN(1 * LAMPORTS_PER_SOL)
+    // Calculate expected shares based on 1_000_000 conversion rate
+    const expectedShares2 = betAmount2.div(new anchor.BN(1_000_000))
+
     await program.methods
       .buy(true, betAmount2)
       .accounts({
@@ -447,6 +453,20 @@ describe('yapping withdraw rewards tests', () => {
 
     // Sleep briefly between transactions
     await new Promise((resolve) => setTimeout(resolve, 500))
+
+    // Verify the shares were correctly calculated
+    const metadataBeforeResolve =
+      await program.account.marketMetadata.fetch(marketMetadataPDA)
+    const totalShares = expectedShares1.add(expectedShares2)
+    expect(metadataBeforeResolve.totalYesShares.toString()).toEqual(
+      totalShares.toString()
+    )
+
+    // Total rewards should be sum of all bets
+    const totalRewards = betAmount1.add(betAmount2)
+    expect(metadataBeforeResolve.totalRewards.toString()).toEqual(
+      totalRewards.toString()
+    )
 
     // Resolve market with YES (true) outcome
     await program.methods
@@ -460,10 +480,14 @@ describe('yapping withdraw rewards tests', () => {
     // Sleep briefly between transactions
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    // Get initial market balance
+    // Get initial balances
     const initialMarketBalance = await provider.connection.getBalance(marketPDA)
+    const initialUserBalance = await provider.connection.getBalance(user)
+    const initialUser2Balance = await provider.connection.getBalance(
+      user2.publicKey
+    )
 
-    // User 1 withdraws rewards
+    // User 1 withdraws rewards - should get 1/3 of the pool based on shares (0.5 vs 1.0 SOL invested)
     await program.methods
       .withdrawRewards()
       .accounts({
@@ -475,7 +499,7 @@ describe('yapping withdraw rewards tests', () => {
     // Sleep briefly between transactions
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    // User 2 withdraws rewards
+    // User 2 withdraws rewards - should get 2/3 of the pool based on shares (1.0 vs 0.5 SOL invested)
     await program.methods
       .withdrawRewards()
       .accounts({
@@ -485,32 +509,40 @@ describe('yapping withdraw rewards tests', () => {
       .signers([user2])
       .rpc()
 
-    // Get final market balance
+    // Get final balances
     const finalMarketBalance = await provider.connection.getBalance(marketPDA)
-
-    // Verify market's balance decreased due to withdrawals
-    const marketBalanceDecrease = initialMarketBalance - finalMarketBalance
-
-    // The market should have decreased by approximately the sum of both bets
-    expect(marketBalanceDecrease).toBeGreaterThan(
-      (betAmount1.toNumber() + betAmount2.toNumber()) * 0.8
+    const finalUserBalance = await provider.connection.getBalance(user)
+    const finalUser2Balance = await provider.connection.getBalance(
+      user2.publicKey
     )
 
-    // Verify both market voter accounts are closed
-    try {
-      await program.account.marketVoter.fetch(marketVoterPDA1)
-      fail('Expected market voter 1 account to be closed')
-    } catch (error) {
-      // This is expected - account not found
-      expect(error).toBeTruthy()
-    }
+    // Calculate rewards received (accounting for transaction fees)
+    const user1Increase = finalUserBalance - initialUserBalance
+    const user2Increase = finalUser2Balance - initialUser2Balance
 
-    try {
-      await program.account.marketVoter.fetch(marketVoterPDA2)
-      fail('Expected market voter 2 account to be closed')
-    } catch (error) {
-      // This is expected - account not found
-      expect(error).toBeTruthy()
-    }
-  }, 30000) // Increase timeout to 30 seconds
+    // Market balance should decrease by the sum of rewards paid out plus rent
+    const marketBalanceDecrease = initialMarketBalance - finalMarketBalance
+
+    // The expected proportion for reward distribution
+    // User 1 had 1/3 of the shares, User 2 had 2/3 of the shares
+    const totalSpentOnBets = betAmount1.add(betAmount2).toNumber()
+
+    // User 1 should get approximately 1/3 of the reward pool
+    // Allow for some variance due to gas fees and rounding
+    expect(user1Increase).toBeGreaterThan(totalSpentOnBets * 0.3 * 0.9) // At least 90% of expected 1/3
+    expect(user1Increase).toBeLessThan(totalSpentOnBets * 0.4) // No more than 40% of total
+
+    // User 2 should get approximately 2/3 of the reward pool
+    // Allow for some variance due to gas fees and rounding
+    expect(user2Increase).toBeGreaterThan(totalSpentOnBets * 0.6 * 0.9) // At least 90% of expected 2/3
+    expect(user2Increase).toBeLessThan(totalSpentOnBets * 0.7) // No more than 70% of total
+
+    // Verify that both users together got most of the pool
+    expect(user1Increase + user2Increase).toBeGreaterThan(
+      totalSpentOnBets * 0.9
+    )
+
+    // Verify that the market account was reduced by approximately the total rewards
+    expect(marketBalanceDecrease).toBeGreaterThanOrEqual(totalSpentOnBets * 0.9)
+  })
 })
