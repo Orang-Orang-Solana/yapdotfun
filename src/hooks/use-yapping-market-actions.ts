@@ -219,12 +219,29 @@ export function useYappingMarketActions() {
     }
   })
 
+  // commented out coz only validators can close markets
+  // const { mutateAsync: closeMarket } = useMutation({
+  //   mutationKey: ['yapping', 'closeMarket', { cluster }],
+  //   mutationFn: async (params: { marketPDA: PublicKey }) => {
+  //     throw new Error('Not implemented')
+  //   }
+  // })
+
+  const { mutateAsync: withdrawRewards } = useMutation({
+    mutationKey: ['yapping', 'withdrawRewards', { cluster }],
+    mutationFn: async (params: { marketPDA: PublicKey }) => {
+      throw new Error('Not implemented')
+    }
+  })
+
   return {
     program,
     programId,
     getProgramAccount,
     initializeMarket,
     buy,
-    sell
+    sell,
+    // closeMarket,
+    withdrawRewards
   }
 }

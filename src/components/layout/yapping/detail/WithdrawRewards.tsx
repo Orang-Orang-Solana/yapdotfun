@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { Button } from '@/components/ui/button'
 import { useTransactionToast } from '@/components/ui/ui-layout'
 import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
@@ -33,7 +32,6 @@ export default function WithdrawRewards({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const { connected } = useWallet()
   const transactionToast = useTransactionToast()
-  const provider = useAnchorProvider()
   const { withdrawRewards } = useYappingMarketActions()
 
   // Check if market is resolved and the user can claim rewards
