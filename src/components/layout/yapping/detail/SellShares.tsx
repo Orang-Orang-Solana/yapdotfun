@@ -11,6 +11,7 @@ import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
 import { BN } from '@coral-xyz/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Declare global function for TypeScript
 declare global {
@@ -55,7 +56,7 @@ export default function SellShares({
   const transactionToast = useTransactionToast()
   const provider = useAnchorProvider()
   const { sell } = useYappingMarketActions()
-
+  const queryClient = useQueryClient()
   // Calculate the maximum shares the user can sell
   const maxShares = userAmount ? Math.floor(userAmount / LAMPORTS_PER_SHARE) : 0
   const hasShares = maxShares > 0 && userVote !== null && userVote !== undefined
@@ -63,7 +64,7 @@ export default function SellShares({
   // Calculate the SOL value of the shares
   const solValue = sharesToSell
     ? ((Number(sharesToSell) * LAMPORTS_PER_SHARE) / LAMPORTS_PER_SOL).toFixed(
-        3
+        2
       )
     : '0'
 
@@ -118,6 +119,9 @@ export default function SellShares({
       if (window.refreshMarketChart) {
         window.refreshMarketChart(marketPublicKey)
       }
+
+      // Refresh market data
+      await queryClient.refetchQueries({ queryKey: ['get-market-accounts'] })
 
       // Reset form
       setSharesToSell('')

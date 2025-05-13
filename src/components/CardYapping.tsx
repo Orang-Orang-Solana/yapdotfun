@@ -26,12 +26,14 @@ import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
 import { BN } from '@coral-xyz/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, type PublicKey } from '@solana/web3.js'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 
 export default function CardYapping() {
-  const { marketAccounts } = useYappingMarketFetchers()
+  const { marketAccounts, program } = useYappingMarketFetchers()
+  const queryClient = useQueryClient()
   const { buy } = useYappingMarketActions()
   const { connected } = useWallet()
 
@@ -39,10 +41,12 @@ export default function CardYapping() {
   const [betting, setBetting] = useState<number | null>(null)
   const [selectedMarket, setSelectedMarket] = useState<PublicKey | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false)
 
   function chooseBetting(bet: number, marketPublicKey: PublicKey) {
     setBetting(bet)
     setSelectedMarket(marketPublicKey)
+    setDialogOpen(true)
     console.log(
       `You chose: ${bet === 1 ? 'YES' : 'NO'} for market ${marketPublicKey.toBase58()}`
     )
@@ -66,10 +70,16 @@ export default function CardYapping() {
         amount: lamports
       })
 
+      // Close the dialog
+      setDialogOpen(false)
+
       // Reset form
       setAmount('')
       setBetting(null)
       setSelectedMarket(null)
+
+      // Refresh market data
+      await queryClient.refetchQueries({ queryKey: ['get-market-accounts'] })
     } catch (error) {
       console.error('Betting error:', error)
       toast.error('Failed to place bet. Please try again.')
@@ -107,7 +117,10 @@ export default function CardYapping() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-5 flex-grow">
-              <Dialog>
+              <Dialog
+                open={dialogOpen && betting === 1}
+                onOpenChange={setDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button
                     onClick={() => chooseBetting(1, data.publicKey)}
@@ -147,7 +160,10 @@ export default function CardYapping() {
                 </DialogContent>
               </Dialog>
 
-              <Dialog>
+              <Dialog
+                open={dialogOpen && betting === 0}
+                onOpenChange={setDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button
                     variant={'secondary'}
@@ -194,7 +210,8 @@ export default function CardYapping() {
                   Total Bets
                 </span>{' '}
                 {(
-                  data.account.metadata.totalYesAssets.toNumber() /
+                  (data.account.metadata.totalYesAssets.toNumber() +
+                    data.account.metadata.totalNoAssets.toNumber()) /
                   LAMPORTS_PER_SOL
                 ).toFixed(3)}{' '}
                 SOL
@@ -216,101 +233,3 @@ export default function CardYapping() {
     </div>
   )
 }
-
-const dummyBets = [
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20225938.png?alt=media&token=7d31b80f-d7f7-4c00-aeb2-8af44ffd5924',
-    description: 'Will Ethereum price exceed $5000 by the end of 2025?',
-    totalBet: '19 SOL',
-    startBet: '1735689600',
-    endBet: '1766908800'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20225945.png?alt=media&token=5ff0d9d3-48e5-4151-881e-cb1ad15bb24d',
-
-    description: 'Will Brazil win the 2026 FIFA World Cup?',
-    totalBet: '19 SOL',
-    startBet: '1762992000',
-    endBet: '1784649600'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20225954.png?alt=media&token=7c9eef81-d097-4d8c-bbae-62d5a6c91451',
-
-    description: 'Will Apple release a foldable iPhone in 2025?',
-    totalBet: '19 SOL',
-    startBet: '1735689600',
-    endBet: '1765699200'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20230136.png?alt=media&token=1a6d1d77-342e-49ce-8065-717b2ebbac25',
-
-    description:
-      'Will the incumbent party win the 2028 US presidential election?',
-    totalBet: '119 SOL',
-    startBet: '1798761600',
-    endBet: '1857609600'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20230145.png?alt=media&token=5d5beffe-c0ba-4cbd-88eb-00c96663eea5',
-
-    description: 'Will SpaceX successfully land humans on Mars before 2030?',
-    totalBet: '19 SOL',
-    startBet: '1735689600',
-    endBet: '1893456000'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20225954.png?alt=media&token=7c9eef81-d097-4d8c-bbae-62d5a6c91451',
-
-    description:
-      'Will the movie "Dune: Part Three" win Best Picture at the 2026 Oscars?',
-    totalBet: '19 SOL',
-    startBet: '1743608400',
-    endBet: '1772172000'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20225945.png?alt=media&token=5ff0d9d3-48e5-4151-881e-cb1ad15bb24d',
-
-    description:
-      'Will Bitcoin reach $100,000 within 6 months after the 2024 halving?',
-    totalBet: '219 SOL',
-    startBet: '1713686400',
-    endBet: '1729296000'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20230150.png?alt=media&token=bd1510f2-ab1d-41f3-bd55-c29145f8dd8f',
-
-    description:
-      'Will any AI system pass a comprehensive Turing test by the end of 2025?',
-    totalBet: '19 SOL',
-    startBet: '1735689600',
-    endBet: '1766908800'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20230150.png?alt=media&token=bd1510f2-ab1d-41f3-bd55-c29145f8dd8f',
-
-    description:
-      'Will the USA win the most gold medals at the 2028 Summer Olympics?',
-    totalBet: '19 SOL',
-    startBet: '1798761600',
-    endBet: '1848960000'
-  },
-  {
-    image:
-      'https://firebasestorage.googleapis.com/v0/b/jekydatabase.appspot.com/o/yapping%2FScreenshot%202025-03-24%20230159.png?alt=media&token=56e2a4e6-b1de-4999-af47-a218eeb33755',
-
-    description:
-      'Will global average temperature increase by more than 1.5°C by 2026 compared to pre-industrial levels?',
-    totalBet: '19 SOL',
-    startBet: '1735689600',
-    endBet: '1798761600'
-  }
-]

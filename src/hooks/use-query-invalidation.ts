@@ -17,17 +17,17 @@ export function useQueryInvalidation() {
     // Invalidate market-specific queries if marketId is provided
     if (marketId) {
       // Invalidate market account data
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ['get-market-account']
       })
 
       // Invalidate chart data for this specific market
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ['chart-data', marketId]
       })
 
       // Invalidate voter data (user's bets/positions)
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ['get-market-voter']
       })
 
@@ -44,16 +44,16 @@ export function useQueryInvalidation() {
       }
     } else {
       // Invalidate all market-related queries
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ['get-market-accounts']
       })
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ['get-market-account']
       })
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ['chart-data']
       })
-      queryClient.invalidateQueries({
+      queryClient.refetchQueries({
         queryKey: ['get-market-voter']
       })
     }
@@ -66,16 +66,16 @@ export function useQueryInvalidation() {
    * Invalidates all account balance-related queries
    */
   const invalidateBalanceData = () => {
-    queryClient.invalidateQueries({
+    queryClient.refetchQueries({
       queryKey: ['get-balance']
     })
-    queryClient.invalidateQueries({
+    queryClient.refetchQueries({
       queryKey: ['get-signatures']
     })
-    queryClient.invalidateQueries({
+    queryClient.refetchQueries({
       queryKey: ['getTokenAccountBalance']
     })
-    queryClient.invalidateQueries({
+    queryClient.refetchQueries({
       queryKey: ['getTokenAccounts']
     })
   }

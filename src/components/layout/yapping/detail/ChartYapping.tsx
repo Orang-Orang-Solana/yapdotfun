@@ -1,7 +1,7 @@
 'use client'
 
 import { TrendingUp } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import {
@@ -135,6 +135,7 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps) => {
 
 // Function to fetch chart data from API
 async function fetchChartData(marketId: string): Promise<ChartDataResponse> {
+  console.log('fetchChartData', marketId)
   const response = await fetch(`/api/chart-data?marketId=${marketId}`)
   if (!response.ok) {
     throw new Error('Failed to fetch chart data')
@@ -153,20 +154,18 @@ export function ChartYapping({
 }) {
   const queryClient = useQueryClient()
 
-  // Generate the full query key with the market ID - memoized to prevent it changing on rerenders
-  const queryKey = useMemo(
-    () => [CHART_DATA_QUERY_KEY, marketPublicKey],
-    [marketPublicKey]
-  )
+  // // Generate the full query key with the market ID - memoized to prevent it changing on rerenders
+  // const queryKey = useMemo(
+  //   () => [CHART_DATA_QUERY_KEY, marketPublicKey],
+  //   [marketPublicKey]
+  // )
 
   const { data, isLoading, error, refetch } = useQuery<ChartDataResponse>({
-    queryKey,
+    queryKey: [CHART_DATA_QUERY_KEY, marketPublicKey],
     queryFn: () => fetchChartData(marketPublicKey),
     enabled: !!marketPublicKey,
-    refetchOnWindowFocus: true,
-    staleTime: 30000, // Data stays fresh for 30 seconds
-    refetchInterval: 60000, // Poll for new data every minute
-    retry: 1
+    refetchInterval: 10000, // Poll for new data every 10 seconds
+    staleTime: 10000 // Data stays fresh for 10 seconds
   })
 
   // Create a function to manually refresh chart data
@@ -176,7 +175,9 @@ export function ChartYapping({
     const handleMarketUpdate = (event: CustomEvent) => {
       if (event.detail?.marketId === marketPublicKey) {
         // Immediately invalidate the query to trigger a refetch
-        queryClient.invalidateQueries({ queryKey })
+        queryClient.refetchQueries({
+          queryKey: [CHART_DATA_QUERY_KEY, marketPublicKey]
+        })
       }
     }
 
@@ -201,7 +202,7 @@ export function ChartYapping({
       // @ts-ignore - clean up the global function
       window.refreshMarketChart = undefined
     }
-  }, [marketPublicKey, queryClient, queryKey, refetch])
+  }, [marketPublicKey, queryClient, refetch])
 
   // Format date for footer
   const getDateRange = () => {
@@ -291,7 +292,10 @@ export function ChartYapping({
                 axisLine={false}
                 tickMargin={8}
                 tickFormatter={(value) =>
-                  new Date(value * 1000).toLocaleDateString()
+                  new Date(value * 1000).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
                 }
               />
               <YAxis

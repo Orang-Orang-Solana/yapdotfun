@@ -6,15 +6,9 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { useTransactionToast } from '@/components/ui/ui-layout'
 import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
+import { useYappingMarketPosition } from '@/hooks/use-yapping-market-position'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
-
-// No need for this declaration anymore since we're using the invalidation hook
-// declare global {
-//   interface Window {
-//     refreshMarketChart?: (marketId: string) => void
-//   }
-// }
 
 interface WithdrawRewardsProps {
   marketPublicKey: string
@@ -33,6 +27,7 @@ export default function WithdrawRewards({
   const { connected } = useWallet()
   const transactionToast = useTransactionToast()
   const { withdrawRewards } = useYappingMarketActions()
+  const { refetch: refetchPosition } = useYappingMarketPosition(marketPublicKey)
 
   // Check if market is resolved and the user can claim rewards
   const isClosed = marketStatus === 'Closed'
@@ -47,6 +42,13 @@ export default function WithdrawRewards({
 
     if (!isClosed) {
       toast.error('Market is not closed yet')
+      return
+    }
+
+    if (!isWinner) {
+      toast.error(
+        'You can only withdraw rewards if you bet on the winning outcome'
+      )
       return
     }
 
@@ -65,11 +67,26 @@ export default function WithdrawRewards({
       transactionToast(tx)
       toast.success('Rewards withdrawn successfully!')
 
-      // No need to manually dispatch events or refresh the chart anymore
-      // This is now handled by the invalidateMarketData function in our hook
+      // Force refetch position data to update UI
+      setTimeout(() => {
+        refetchPosition()
+      }, 2000)
     } catch (error) {
       console.error('Withdrawal error:', error)
-      toast.error('Failed to withdraw rewards. Please try again.')
+
+      // Format error message for user
+      let errorMessage = 'Failed to withdraw rewards. Please try again.'
+
+      if (error instanceof Error) {
+        // Check for common errors
+        if (error.message.includes('Market not closed')) {
+          errorMessage = 'The market is not closed yet.'
+        } else if (error.message.includes('No shares')) {
+          errorMessage = "You don't have any shares to claim rewards for."
+        }
+      }
+
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -104,7 +121,9 @@ export default function WithdrawRewards({
         </p>
         <p className="text-sm mt-1">
           <span className="text-muted-foreground">Status: </span>
-          <span className="font-medium">
+          <span
+            className={`font-medium ${isWinner ? 'text-green-600' : 'text-red-600'}`}
+          >
             {!isClosed
               ? 'Market not resolved yet'
               : isWinner
@@ -117,6 +136,7 @@ export default function WithdrawRewards({
         onClick={handleWithdraw}
         disabled={isLoading || !canClaim}
         variant={isWinner ? 'default' : 'outline'}
+        className={isWinner ? 'bg-green-600 hover:bg-green-700' : ''}
       >
         {isLoading
           ? 'Processing...'

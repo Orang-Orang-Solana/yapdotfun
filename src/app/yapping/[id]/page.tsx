@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 import { ChartYapping } from '@/components/layout/yapping/detail/ChartYapping'
 import ChatYapping from '@/components/layout/yapping/detail/ChatYapping'
+import DebugCloseMarket from '@/components/layout/yapping/detail/DebugCloseMarket'
 import InfoYapping from '@/components/layout/yapping/detail/InfoYapping'
 import SellShares from '@/components/layout/yapping/detail/SellShares'
 import TradeYapping from '@/components/layout/yapping/detail/TradeYapping'
@@ -88,11 +89,19 @@ export default function YappingDetailPage() {
       </section>
       <section className="space-y-5 h-fit">
         {isMarketOpen && (
-          <TradeYapping
-            chanceBetYES={chanceBetYES}
-            chanceBetNO={chanceBetNO}
-            marketPublicKey={marketId}
-          />
+          <>
+            <TradeYapping
+              chanceBetYES={chanceBetYES}
+              chanceBetNO={chanceBetNO}
+              marketPublicKey={marketId}
+            />
+
+            {/* Debug component for closing markets - only visible in development */}
+            <DebugCloseMarket
+              marketPublicKey={marketId}
+              marketStatus={isMarketOpen ? 'Open' : 'Closed'}
+            />
+          </>
         )}
 
         {positionData && (
@@ -105,14 +114,35 @@ export default function YappingDetailPage() {
           />
         )}
 
-        {positionData && !isMarketOpen && (
-          <WithdrawRewards
-            marketPublicKey={marketId}
-            marketStatus="closed"
-            userVote={positionData.bet}
-            marketOutcome={market.result}
-          />
-        )}
+        {!isMarketOpen &&
+          (positionData ? (
+            <WithdrawRewards
+              marketPublicKey={marketId}
+              marketStatus={isMarketOpen ? 'Open' : 'Closed'}
+              userVote={positionData.bet}
+              marketOutcome={market.result}
+            />
+          ) : (
+            <div className="space-y-5 border rounded p-5 mt-5">
+              <h1 className="font-medium">Market Rewards</h1>
+              <div className="p-3 bg-muted rounded-md">
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Market status: </span>
+                  <span className="font-medium">Closed</span>
+                </p>
+                <p className="text-sm mt-1">
+                  <span className="text-muted-foreground">Outcome: </span>
+                  <span className="font-medium">
+                    {market.result ? 'YES' : 'NO'}
+                  </span>
+                </p>
+                <p className="text-sm mt-1 text-green-600">
+                  You have no active position in this market. You may have
+                  already withdrawn your rewards or did not participate.
+                </p>
+              </div>
+            </div>
+          ))}
 
         <ChatYapping messages={messages} />
       </section>

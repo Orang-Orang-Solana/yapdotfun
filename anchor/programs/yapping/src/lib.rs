@@ -58,7 +58,6 @@ pub mod yapping {
         Sell::process(ctx, shares_amount)
     }
 
-    // TODO: Implement these instructions
     pub fn close_market(ctx: Context<CloseMarket>, result: bool) -> Result<()> {
         CloseMarket::process(ctx, result)
     }
@@ -238,6 +237,57 @@ pub struct WithdrawRewards<'info> {
     pub system_program: Program<'info, System>,
 }
 
+/// Accounts required for the `close_market` instruction.
+#[derive(Accounts)]
+pub struct CloseMarket<'info> {
+    /// The validator who is closing the market.
+    /// Must be the dummy validator for testing (in production, this would be a proper validator).
+    #[account(
+        constraint = signer.key() == DUMMY_VALIDATOR_KEY @ YappingError::NotValidator
+    )]
+    pub signer: Signer<'info>,
+    /// The market account to be closed.
+    /// The market must be open.
+    #[account(
+        mut,
+        constraint = market.status == MarketStatus::Open @ YappingError::MarketStatusClosed,
+        // TODO: Uncomment this constraint when we have a way to test it
+        // constraint = Clock::get()?.unix_timestamp as u64 >= market.end_time @ YappingError::MarketNotClosed,
+    )]
+    pub market: Account<'info, Market>,
+}
+
+impl<'info> CloseMarket<'info> {
+    /// Processes the `close_market` instruction.
+    /// Sets the market status to Closed and updates the result.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context for this instruction.
+    /// * `result` - The result of the market (true for YES, false for NO).
+    ///
+    /// # Returns
+    ///
+    /// * `Result<()>` - The result of the operation.
+    pub fn process(ctx: Context<Self>, result: bool) -> Result<()> {
+        let market = &mut ctx.accounts.market;
+
+        // Set the market status to closed
+        market.status = MarketStatus::Closed;
+
+        // Set the market result
+        market.result = result;
+
+        // Emit event
+        emit!(MarketClosed {
+            market_id: market.key(),
+            result,
+        });
+
+        Ok(())
+    }
+}
+
 impl<'info> WithdrawRewards<'info> {
     /// Processes the `withdraw_rewards` instruction.
     pub fn process(ctx: Context<Self>) -> Result<()> {
@@ -288,56 +338,6 @@ impl<'info> WithdrawRewards<'info> {
                 vault_balance,
             )?;
         }
-
-        Ok(())
-    }
-}
-
-/// Accounts required for the `close_market` instruction.
-#[derive(Accounts)]
-pub struct CloseMarket<'info> {
-    /// The validator who is closing the market.
-    /// Must be the dummy validator for testing (in production, this would be a proper validator).
-    #[account(
-        constraint = signer.key() == DUMMY_VALIDATOR_KEY @ YappingError::NotValidator
-    )]
-    pub signer: Signer<'info>,
-    /// The market account to be closed.
-    /// The market must be open.
-    #[account(
-        mut,
-        constraint = market.status == MarketStatus::Open @ YappingError::MarketStatusClosed,
-        constraint = Clock::get()?.unix_timestamp as u64 >= market.end_time @ YappingError::MarketNotClosed,
-    )]
-    pub market: Account<'info, Market>,
-}
-
-impl<'info> CloseMarket<'info> {
-    /// Processes the `close_market` instruction.
-    /// Sets the market status to Closed and updates the result.
-    ///
-    /// # Arguments
-    ///
-    /// * `ctx` - The context for this instruction.
-    /// * `result` - The result of the market (true for YES, false for NO).
-    ///
-    /// # Returns
-    ///
-    /// * `Result<()>` - The result of the operation.
-    pub fn process(ctx: Context<Self>, result: bool) -> Result<()> {
-        let market = &mut ctx.accounts.market;
-
-        // Set the market status to closed
-        market.status = MarketStatus::Closed;
-
-        // Set the market result
-        market.result = result;
-
-        // Emit event
-        emit!(MarketClosed {
-            market_id: market.key(),
-            result,
-        });
 
         Ok(())
     }

@@ -33,8 +33,6 @@ export function useYappingMarketFetchers(address?: string) {
     queryFn: () => getMarketAccounts(program)
   })
 
-  console.info('marketaccounts->2', marketAccounts)
-
   return {
     program,
     programId,

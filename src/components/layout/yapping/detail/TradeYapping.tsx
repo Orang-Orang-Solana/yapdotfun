@@ -9,6 +9,7 @@ import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
 import { BN } from '@coral-xyz/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Declare global function for TypeScript
 declare global {
@@ -34,6 +35,7 @@ export default function TradeYapping({
   )
   const { buy } = useYappingMarketActions()
   const { connected } = useWallet()
+  const queryClient = useQueryClient()
 
   // Use a ref to track previous values to avoid unnecessary updates
   const prevAmountRef = useRef<string>('')
@@ -105,6 +107,9 @@ export default function TradeYapping({
 
       // No need to manually dispatch events or refresh the chart anymore
       // This is now handled by the invalidateMarketData function in our hook
+
+      // Refresh market data
+      await queryClient.refetchQueries({ queryKey: ['get-market-accounts'] })
 
       // Reset form
       setAmount('')

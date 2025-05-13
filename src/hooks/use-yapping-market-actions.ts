@@ -7,6 +7,7 @@ import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { useTransactionToast } from '@/components/ui/ui-layout'
 import { useQueryInvalidation } from '@/hooks/use-query-invalidation'
 import type * as anchorTypes from '@coral-xyz/anchor'
+import * as anchor from '@coral-xyz/anchor'
 import {
   getYappingProgram,
   YAPPING_PROGRAM_ID as programId
@@ -219,13 +220,63 @@ export function useYappingMarketActions() {
     }
   })
 
-  // commented out coz only validators can close markets
-  // const { mutateAsync: closeMarket } = useMutation({
-  //   mutationKey: ['yapping', 'closeMarket', { cluster }],
-  //   mutationFn: async (params: { marketPDA: PublicKey }) => {
-  //     throw new Error('Not implemented')
-  //   }
-  // })
+  const { mutateAsync: closeMarket } = useMutation({
+    mutationKey: ['yapping', 'closeMarket', { cluster }],
+    mutationFn: async (params: { marketPDA: PublicKey; result: boolean }) => {
+      try {
+        // Get the validator keypair from backend
+        const validatorResponse = await fetch(
+          '/api/debug/get-validator-keypair'
+        )
+        if (!validatorResponse.ok) {
+          throw new Error('Failed to get validator keypair for debugging')
+        }
+
+        const { secretKey } = await validatorResponse.json()
+        const validatorKeypair = anchor.web3.Keypair.fromSecretKey(
+          new Uint8Array(secretKey)
+        )
+
+        console.log({
+          action: 'closeMarket',
+          marketPDA: params.marketPDA.toBase58(),
+          result: params.result ? 'YES' : 'NO',
+          validator: validatorKeypair.publicKey.toBase58()
+        })
+
+        // Call the close market instruction
+        return await program.methods
+          .closeMarket(params.result)
+          .accounts({
+            market: params.marketPDA,
+            signer: validatorKeypair.publicKey
+          })
+          .signers([validatorKeypair])
+          .rpc()
+      } catch (error) {
+        console.error('Error executing close market transaction:', error)
+        toast.error(`Failed to close market: ${(error as Error).message}`)
+        throw error
+      }
+    },
+    onSuccess: (signature, variables) => {
+      transactionToast(signature)
+      toast.success(
+        `Market closed successfully with result: ${variables.result ? 'YES' : 'NO'}!`
+      )
+      invalidateMarketData(variables.marketPDA.toBase58())
+    },
+    onError: (error: unknown) => {
+      if (error instanceof Error) {
+        if (!error.message?.includes('Failed to close market')) {
+          toast.error(`Market closure failed: ${error.message}`)
+        }
+      } else {
+        toast.error('An unknown error occurred during market closure.')
+      }
+      console.error(error)
+    }
+  })
 
   const { mutateAsync: withdrawRewards } = useMutation({
     mutationKey: ['yapping', 'withdrawRewards', { cluster }],
@@ -253,6 +304,7 @@ export function useYappingMarketActions() {
       )
 
       console.log({
+        action: 'withdrawRewards',
         marketPDA: params.marketPDA.toBase58(),
         marketPositionPDA: marketPositionPDA.toBase58(),
         vaultPDA: vaultPDA.toBase58(),
@@ -266,6 +318,23 @@ export function useYappingMarketActions() {
             market: params.marketPDA,
             signer: provider.wallet.publicKey
           })
+          .remainingAccounts([
+            {
+              pubkey: marketPositionPDA,
+              isWritable: true,
+              isSigner: false
+            },
+            {
+              pubkey: vaultPDA,
+              isWritable: true,
+              isSigner: false
+            },
+            {
+              pubkey: anchor.web3.SystemProgram.programId,
+              isWritable: false,
+              isSigner: false
+            }
+          ])
           .rpc()
       } catch (error) {
         console.error('Error executing withdraw rewards transaction:', error)
@@ -297,7 +366,7 @@ export function useYappingMarketActions() {
     initializeMarket,
     buy,
     sell,
-    // closeMarket,
+    closeMarket,
     withdrawRewards
   }
 }
