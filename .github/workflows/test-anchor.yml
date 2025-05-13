@@ -1,4 +1,4 @@
-name: Test and Build Web
+name: Test Anchor
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   HUSKY: 0
 
 jobs:
-  test-and-build:
+  anchor-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,5 +31,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build project
-        run: pnpm build
+      - name: Anchor Test
+        uses: mrgnlabs/anchor-test-action@v0.5
+        with:
+          args: ''
+          workspace_dir: './anchor'
