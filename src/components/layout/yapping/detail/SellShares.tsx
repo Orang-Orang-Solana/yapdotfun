@@ -27,6 +27,7 @@ interface SellSharesProps {
   userVote?: boolean | null
   userShares?: number
   userAmount?: number
+  isMarketOpen?: boolean
 }
 
 // Helper to hash a string in the same way as the Rust code
@@ -45,7 +46,8 @@ export default function SellShares({
   marketPublicKey,
   userVote,
   userShares = 0,
-  userAmount = 0
+  userAmount = 0,
+  isMarketOpen = false
 }: SellSharesProps) {
   const [sharesToSell, setSharesToSell] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -76,6 +78,11 @@ export default function SellShares({
       return
     }
 
+    if (!isMarketOpen) {
+      toast.error('Market must be open before selling shares')
+      return
+    }
+
     try {
       setIsLoading(true)
 
@@ -93,7 +100,6 @@ export default function SellShares({
 
       const tx = await sell({
         marketPDA,
-        bet: !!userVote,
         shares
       })
 
@@ -129,6 +135,32 @@ export default function SellShares({
         <h1 className="font-medium">Sell Your Shares</h1>
         <p className="text-sm text-muted-foreground">
           You don&apos;t have any shares to sell in this market.
+        </p>
+      </div>
+    )
+  }
+
+  if (!isMarketOpen) {
+    return (
+      <div className="space-y-5 border rounded p-5 mt-5">
+        <h1 className="font-medium">Sell Your Shares</h1>
+        <div className="p-3 bg-muted rounded-md">
+          <p className="text-sm">
+            <span className="text-muted-foreground">Your position: </span>
+            <span className="font-medium">
+              {userVote ? 'YES' : 'NO'} ({maxShares} shares)
+            </span>
+          </p>
+          <p className="text-sm mt-1">
+            <span className="text-muted-foreground">Amount invested: </span>
+            <span className="font-medium">
+              {(userAmount / LAMPORTS_PER_SOL).toFixed(3)} SOL
+            </span>
+          </p>
+        </div>
+        <p className="text-sm text-warning-foreground font-medium">
+          Market must be open to sell shares. This is a requirement from the
+          Solana program.
         </p>
       </div>
     )

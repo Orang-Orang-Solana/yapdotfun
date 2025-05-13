@@ -54,6 +54,17 @@ pub mod yapping {
     pub fn sell(ctx: Context<Sell>, shares_amount: u64) -> Result<()> {
         Sell::process(ctx, shares_amount)
     }
+
+    // TODO: Implement these instructions
+    // pub fn close_market(ctx: Context<CloseMarket>) -> Result<()> {
+    //     // CloseMarket::process(ctx)
+    //     todo!()
+    // }
+
+    // pub fn withdraw_rewards(ctx: Context<WithdrawRewards>) -> Result<()> {
+    //     // WithdrawRewards::process(ctx)
+    //     todo!()
+    // }
 }
 
 /// Accounts required for the `initialize_market` instruction.
@@ -196,10 +207,20 @@ pub struct Market {
     /// A URL for an image related to the market (max 256 characters).
     #[max_len(0x100)]
     pub image_url: String,
+    /// The result of the market (true for YES, false for NO).
+    pub result: bool,
+    /// Status of the market (Open or Closed).
+    pub status: MarketStatus,
     /// The Unix timestamp when the market ends.
     pub end_time: u64,
     /// Metadata about the market, including total assets and shares.
     pub metadata: MarketMetadata,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, Debug, InitSpace)]
+pub enum MarketStatus {
+    Open,
+    Closed,
 }
 
 /// Metadata associated with a `Market`.
@@ -229,6 +250,7 @@ impl Market {
         market.description = description;
         market.image_url = image_url;
         market.end_time = end_time;
+        market.status = MarketStatus::Open;
         market.metadata = MarketMetadata::default();
 
         emit!(MarketInitialized {
@@ -298,7 +320,7 @@ impl MarketPosition {
         let market = &mut ctx.accounts.market;
 
         require!(
-            market.end_time > Clock::get()?.unix_timestamp as u64,
+            market.status == MarketStatus::Open,
             YappingError::MarketStatusClosed
         );
         msg!("MarketStatusClosed::checks > passed");
@@ -392,7 +414,7 @@ impl MarketPosition {
         let market = &mut ctx.accounts.market;
 
         require!(
-            market.end_time > Clock::get()?.unix_timestamp as u64,
+            market.status == MarketStatus::Open,
             YappingError::MarketStatusClosed
         );
 

@@ -16,19 +16,19 @@ function intoShares(amount: number): number {
   return Math.floor(amount / LAMPORTS_PER_SHARE)
 }
 
-export function useYappingMarketVoter(marketAddress?: string) {
+export function useYappingMarketPosition(marketAddress?: string) {
   const { cluster } = useCluster()
   const provider = useAnchorProvider()
   const program = getYappingProgram(provider)
   const { publicKey } = useWallet()
 
   const {
-    data: voterData,
+    data: positionData,
     isLoading,
     error,
     refetch
   } = useQuery({
-    queryKey: ['get-market-voter', { cluster, marketAddress, publicKey }],
+    queryKey: ['get-market-position', { cluster, marketAddress, publicKey }],
     queryFn: async () => {
       if (!publicKey || !marketAddress) {
         return null
@@ -37,42 +37,32 @@ export function useYappingMarketVoter(marketAddress?: string) {
       try {
         const marketPDA = new PublicKey(marketAddress)
 
-        // Find market voter PDA
-        const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+        // Find market position PDA
+        const [marketPosition] = PublicKey.findProgramAddressSync(
           [
-            Buffer.from('market_voter'),
-            publicKey.toBuffer(),
-            marketPDA.toBuffer()
+            Buffer.from('market_position'),
+            marketPDA.toBuffer(),
+            publicKey.toBuffer()
           ],
           program.programId
         )
 
-        // Fetch market voter data
-        const marketVoterData =
-          await program.account.marketVoter.fetch(marketVoterPDA)
-
-        // Find market metadata PDA
-        const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from('market_metadata'), marketPDA.toBuffer()],
-          program.programId
-        )
-
-        // Get market metadata
-        const marketMetadata =
-          await program.account.marketMetadata.fetch(marketMetadataPDA)
+        // Fetch market position data
+        const marketPositionData =
+          await program.account.marketPosition.fetch(marketPosition)
 
         // Use the same share calculation logic as the backend
-        const userAmount = marketVoterData.amount.toNumber()
+        const userAmount = marketPositionData.amount.toNumber()
         const userShares = intoShares(userAmount)
 
         return {
-          vote: marketVoterData.vote,
+          bet: marketPositionData.bet,
           amount: userAmount,
           shares: userShares,
-          pubkey: marketVoterPDA
+          pubkey: marketPosition
         }
       } catch (error) {
-        console.log('No voter data found for this market and user', error)
+        console.log('No position data found for this market and user', error)
         return null
       }
     },
@@ -80,7 +70,7 @@ export function useYappingMarketVoter(marketAddress?: string) {
   })
 
   return {
-    voterData,
+    positionData,
     isLoading,
     error,
     refetch

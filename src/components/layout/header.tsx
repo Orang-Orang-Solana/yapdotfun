@@ -93,7 +93,7 @@ export default function Header() {
       const signature = await initializeMarket({
         description,
         imageUrl: url,
-        expectedResolutionDate: new BN(date.getTime() / 1000)
+        endTime: new BN(date.getTime() / 1000)
       })
 
       toast.success('Prediction created', {

@@ -10,14 +10,14 @@ import SellShares from '@/components/layout/yapping/detail/SellShares'
 import TradeYapping from '@/components/layout/yapping/detail/TradeYapping'
 import WithdrawRewards from '@/components/layout/yapping/detail/WithdrawRewards'
 import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
-import { useYappingMarketVoter } from '@/hooks/use-yapping-market-voter'
+import { useYappingMarketPosition } from '@/hooks/use-yapping-market-position'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 
 export default function YappingDetailPage() {
   const params = useParams()
   const marketId = typeof params.id === 'string' ? params.id : ''
   const { marketAccount, marketAccounts } = useYappingMarketFetchers(marketId)
-  const { voterData } = useYappingMarketVoter(marketId)
+  const { positionData } = useYappingMarketPosition(marketId)
 
   // Calculate chances based on market data
   const [chanceBetYES, setChanceBetYES] = useState(50)
@@ -33,11 +33,16 @@ export default function YappingDetailPage() {
     const market = marketAccounts.find(
       (m) => m.publicKey.toBase58() === marketId
     )
-    if (!market || !market.totalYesAssets || !market.totalNoAssets) return
+    if (
+      !market ||
+      !market.account.metadata.totalYesAssets ||
+      !market.account.metadata.totalNoAssets
+    )
+      return
 
     // Calculate YES/NO percentages
-    const totalYesAssets = market.totalYesAssets.toNumber()
-    const totalNoAssets = market.totalNoAssets.toNumber()
+    const totalYesAssets = market.account.metadata.totalYesAssets.toNumber()
+    const totalNoAssets = market.account.metadata.totalNoAssets.toNumber()
     const totalAssets = totalYesAssets + totalNoAssets
 
     if (totalAssets > 0) {
@@ -58,6 +63,9 @@ export default function YappingDetailPage() {
   }
 
   const market = marketAccount.data
+  // Check if market status is open (in Solana program it's an enum)
+  const isMarketOpen =
+    !market.status?.closed || market.status?.open !== undefined
 
   return (
     <main className="grid xl:grid-cols-3 gap-5">
@@ -68,9 +76,7 @@ export default function YappingDetailPage() {
             description: market.description,
             totalBet: `${(chanceBetYES / 100).toFixed(2)}/${(chanceBetNO / 100).toFixed(2)}`,
             startBet: 'N/A',
-            endBet: new Date(
-              Number(market.expectedResolutionDate) * 1000
-            ).toISOString(),
+            endBet: new Date(Number(market.endTime) * 1000).toISOString(),
             liquidity: `${totalLiquidity} SOL`
           }}
         />
@@ -81,29 +87,33 @@ export default function YappingDetailPage() {
         />
       </section>
       <section className="space-y-5 h-fit">
-        <TradeYapping
-          chanceBetYES={chanceBetYES}
-          chanceBetNO={chanceBetNO}
-          marketPublicKey={marketId}
-        />
-        {/* Add SellShares component if user has a position */}
-        {voterData && (
+        {isMarketOpen && (
+          <TradeYapping
+            chanceBetYES={chanceBetYES}
+            chanceBetNO={chanceBetNO}
+            marketPublicKey={marketId}
+          />
+        )}
+
+        {positionData && (
           <SellShares
             marketPublicKey={marketId}
-            userVote={voterData.vote}
-            userShares={voterData.shares}
-            userAmount={voterData.amount}
+            userVote={positionData.bet}
+            userShares={positionData.shares}
+            userAmount={positionData.amount}
+            isMarketOpen={isMarketOpen}
           />
         )}
-        {/* Add WithdrawRewards component for closed markets */}
-        {voterData && market.status.toString().toLowerCase() === 'closed' && (
+
+        {positionData && !isMarketOpen && (
           <WithdrawRewards
             marketPublicKey={marketId}
-            marketStatus={market.status.toString()}
-            userVote={voterData.vote}
-            marketOutcome={market.answer}
+            marketStatus="closed"
+            userVote={positionData.bet}
+            marketOutcome={market.result}
           />
         )}
+
         <ChatYapping messages={messages} />
       </section>
     </main>

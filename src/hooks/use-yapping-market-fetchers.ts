@@ -2,7 +2,6 @@
 
 import { useCluster } from '@/components/cluster/cluster-data-access'
 import { useAnchorProvider } from '@/components/solana/solana-provider'
-import type { MarketAccount } from '@/types/yapping'
 import type { Program } from '@coral-xyz/anchor'
 import {
   type Yapping,
@@ -10,7 +9,6 @@ import {
   YAPPING_PROGRAM_ID as programId
 } from '@project/anchor'
 import { useConnection } from '@solana/wallet-adapter-react'
-import { PublicKey } from '@solana/web3.js'
 import { useQuery } from '@tanstack/react-query'
 
 export function useYappingMarketFetchers(address?: string) {
@@ -46,27 +44,9 @@ export function useYappingMarketFetchers(address?: string) {
   }
 }
 
-export async function getMarketAccounts(
-  program: Program<Yapping>
-): Promise<MarketAccount[]> {
+export async function getMarketAccounts(program: Program<Yapping>) {
   const marketAccounts = await program.account.market.all()
   console.info('marketAccounts->', marketAccounts)
-  const marketWithMetadata = await Promise.all(
-    marketAccounts.map(async (market) => {
-      // find PDA for market metadata
-      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('market_metadata'), market.publicKey.toBuffer()],
-        program.programId
-      )
 
-      console.info('marketMetadataPDA->', marketMetadataPDA)
-
-      const marketMetadata =
-        await program.account.marketMetadata.fetch(marketMetadataPDA)
-
-      return { ...market, ...marketMetadata }
-    })
-  )
-
-  return marketWithMetadata
+  return marketAccounts
 }

@@ -33,14 +33,23 @@ export function useYappingMarketActions() {
     mutationFn: async (params: {
       description: string
       imageUrl: string
-      expectedResolutionDate: anchorTypes.BN
+      endTime: anchorTypes.BN
     }) => {
-      const descHash = await fetch(
-        `/api/get-desc-hash?desc=${params.description}`
+      if (!provider.wallet.publicKey) {
+        throw new Error('Wallet not connected')
+      }
+      const descHashResponse = await fetch(
+        `/api/get-desc-hash?desc=${encodeURIComponent(params.description)}`
       )
+      if (!descHashResponse.ok) {
+        throw new Error('Failed to get description hash')
+      }
+      const hashedDescBytes = await descHashResponse.arrayBuffer()
+      const hashedDesc = Buffer.from(hashedDescBytes)
 
-      const response = await descHash.arrayBuffer()
-      const hashedDesc = Buffer.from(response)
+      if (hashedDesc.length !== 32) {
+        throw new Error('Description hash must be 32 bytes')
+      }
 
       const [marketPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from('market'), hashedDesc],
@@ -49,25 +58,27 @@ export function useYappingMarketActions() {
 
       console.table({
         marketPDA: marketPDA.toBase58(),
-        hashedDesc: hashedDesc.toString('hex')
+        hashedDesc: hashedDesc.toString('hex'),
+        description: params.description,
+        imageUrl: params.imageUrl,
+        endTime: params.endTime
       })
 
       return program.methods
-        .initializeMarket(
-          params.description,
-          params.imageUrl,
-          params.expectedResolutionDate
-        )
+        .initializeMarket(params.description, params.imageUrl, params.endTime)
         .accounts({
-          market: marketPDA
+          market: marketPDA,
+          signer: provider.wallet.publicKey
         })
         .rpc()
     },
     onSuccess: (signature) => {
       transactionToast(signature)
+      toast.success('Market initialized successfully!')
+      invalidateMarketData(undefined)
     },
     onError: (error) => {
-      toast.error('Failed to initialize market')
+      toast.error(`Failed to initialize market: ${(error as Error).message}`)
       console.error(error)
     }
   })
@@ -83,24 +94,29 @@ export function useYappingMarketActions() {
         throw new Error('Wallet not connected')
       }
 
-      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('market_metadata'), params.marketPDA.toBuffer()],
+      const [marketPositionPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('market_position'),
+          params.marketPDA.toBuffer(),
+          provider.wallet.publicKey.toBuffer()
+        ],
         program.programId
       )
 
-      const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+      const [vaultPDA] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from('market_voter'),
-          provider.wallet.publicKey.toBuffer(),
-          params.marketPDA.toBuffer()
+          Buffer.from('vault'),
+          params.marketPDA.toBuffer(),
+          provider.wallet.publicKey.toBuffer()
         ],
         program.programId
       )
 
       console.log({
         marketPDA: params.marketPDA.toBase58(),
-        marketMetadataPDA: marketMetadataPDA.toBase58(),
-        marketVoterPDA: marketVoterPDA.toBase58(),
+        marketPositionPDA: marketPositionPDA.toBase58(),
+        vaultPDA: vaultPDA.toBase58(),
+        signer: provider.wallet.publicKey.toBase58(),
         betting: params.bet ? 'YES' : 'NO',
         amount: params.amount.toString()
       })
@@ -115,6 +131,7 @@ export function useYappingMarketActions() {
           .rpc()
       } catch (error) {
         console.error('Error executing buy transaction:', error)
+        toast.error(`Failed to place bet: ${(error as Error).message}`)
         throw error
       }
     },
@@ -123,8 +140,14 @@ export function useYappingMarketActions() {
       toast.success('Your bet has been placed successfully!')
       invalidateMarketData(variables.marketPDA.toBase58())
     },
-    onError: (error) => {
-      toast.error('Failed to place bet')
+    onError: (error: unknown) => {
+      if (error instanceof Error) {
+        if (!error.message?.includes('Failed to place bet')) {
+          toast.error(`Bet placement failed: ${error.message}`)
+        }
+      } else {
+        toast.error('An unknown error occurred during bet placement.')
+      }
       console.error(error)
     }
   })
@@ -133,38 +156,41 @@ export function useYappingMarketActions() {
     mutationKey: ['yapping', 'sell', { cluster }],
     mutationFn: async (params: {
       marketPDA: PublicKey
-      bet: boolean
       shares: anchorTypes.BN
     }) => {
       if (!provider.wallet.publicKey) {
         throw new Error('Wallet not connected')
       }
 
-      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('market_metadata'), params.marketPDA.toBuffer()],
+      const [marketPositionPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('market_position'),
+          params.marketPDA.toBuffer(),
+          provider.wallet.publicKey.toBuffer()
+        ],
         program.programId
       )
 
-      const [marketVoterPDA] = PublicKey.findProgramAddressSync(
+      const [vaultPDA] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from('market_voter'),
-          provider.wallet.publicKey.toBuffer(),
-          params.marketPDA.toBuffer()
+          Buffer.from('vault'),
+          params.marketPDA.toBuffer(),
+          provider.wallet.publicKey.toBuffer()
         ],
         program.programId
       )
 
       console.log({
         marketPDA: params.marketPDA.toBase58(),
-        marketMetadataPDA: marketMetadataPDA.toBase58(),
-        marketVoterPDA: marketVoterPDA.toBase58(),
-        selling: params.bet ? 'YES' : 'NO',
+        marketPositionPDA: marketPositionPDA.toBase58(),
+        vaultPDA: vaultPDA.toBase58(),
+        signer: provider.wallet.publicKey.toBase58(),
         shares: params.shares.toString()
       })
 
       try {
         return await program.methods
-          .sell(params.bet, params.shares)
+          .sell(params.shares)
           .accounts({
             market: params.marketPDA,
             signer: provider.wallet.publicKey
@@ -172,6 +198,7 @@ export function useYappingMarketActions() {
           .rpc()
       } catch (error) {
         console.error('Error executing sell transaction:', error)
+        toast.error(`Failed to sell shares: ${(error as Error).message}`)
         throw error
       }
     },
@@ -180,69 +207,14 @@ export function useYappingMarketActions() {
       toast.success('Your shares have been sold successfully!')
       invalidateMarketData(variables.marketPDA.toBase58())
     },
-    onError: (error) => {
-      toast.error('Failed to sell shares')
-      console.error(error)
-    }
-  })
-
-  // commented coz only validator can resolve market
-  //   const resolveMarketInstruction = useMutation({
-  //     mutationKey: ['yapping', 'resolveMarket', { cluster }],
-  //     mutationFn: (params: { answer: boolean }) =>
-  //       program.methods.resolveMarket(params.answer).rpc()
-  //   })
-
-  const { mutateAsync: withdrawRewards } = useMutation({
-    mutationKey: ['yapping', 'withdrawRewards', { cluster }],
-    mutationFn: async (params: { marketPDA: PublicKey }) => {
-      if (!provider.wallet.publicKey) {
-        throw new Error('Wallet not connected')
+    onError: (error: unknown) => {
+      if (error instanceof Error) {
+        if (!error.message?.includes('Failed to sell shares')) {
+          toast.error(`Share sell failed: ${error.message}`)
+        }
+      } else {
+        toast.error('An unknown error occurred during share sell.')
       }
-
-      // Find the market metadata PDA
-      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('market_metadata'), params.marketPDA.toBuffer()],
-        program.programId
-      )
-
-      // Find the market voter PDA for the current user
-      const [marketVoterPDA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('market_voter'),
-          provider.wallet.publicKey.toBuffer(),
-          params.marketPDA.toBuffer()
-        ],
-        program.programId
-      )
-
-      console.log({
-        marketPDA: params.marketPDA.toBase58(),
-        marketMetadataPDA: marketMetadataPDA.toBase58(),
-        marketVoterPDA: marketVoterPDA.toBase58(),
-        user: provider.wallet.publicKey.toBase58()
-      })
-
-      try {
-        return await program.methods
-          .withdrawRewards()
-          .accounts({
-            market: params.marketPDA,
-            user: provider.wallet.publicKey
-          })
-          .rpc()
-      } catch (error) {
-        console.error('Error executing withdraw rewards transaction:', error)
-        throw error
-      }
-    },
-    onSuccess: (signature, variables) => {
-      transactionToast(signature)
-      toast.success('Rewards withdrawn successfully!')
-      invalidateMarketData(variables.marketPDA.toBase58())
-    },
-    onError: (error) => {
-      toast.error('Failed to withdraw rewards')
       console.error(error)
     }
   })
@@ -253,8 +225,6 @@ export function useYappingMarketActions() {
     getProgramAccount,
     initializeMarket,
     buy,
-    sell,
-    //   resolveMarket: resolveMarketInstruction.mutate,
-    withdrawRewards
+    sell
   }
 }

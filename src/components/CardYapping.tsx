@@ -23,21 +23,12 @@ import {
 } from '@/components/ui/dialog'
 import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
 import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
-import type { MarketAccount } from '@/types/yapping'
 import { BN } from '@coral-xyz/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, type PublicKey } from '@solana/web3.js'
 
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-
-type BetType = {
-  image: string
-  description: string
-  totalBet: string
-  startBet: string
-  endBet: string
-}
 
 export default function CardYapping() {
   const { marketAccounts } = useYappingMarketFetchers()
@@ -92,10 +83,8 @@ export default function CardYapping() {
 
   return (
     <div className="grid xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-      {marketAccounts?.map((data: MarketAccount, index: number) => {
-        const endBet = new Date(
-          Number(data.account.expectedResolutionDate) * 1000
-        )
+      {marketAccounts?.map((data) => {
+        const endBet = new Date(Number(data.account.endTime) * 1000)
         return (
           <Card key={data.publicKey.toBase58()}>
             <CardHeader>
@@ -204,7 +193,10 @@ export default function CardYapping() {
                 <span className="text-muted-foreground font-normal">
                   Total Bets
                 </span>{' '}
-                {(data.totalYesAssets.toNumber() / LAMPORTS_PER_SOL).toFixed(3)}{' '}
+                {(
+                  data.account.metadata.totalYesAssets.toNumber() /
+                  LAMPORTS_PER_SOL
+                ).toFixed(3)}{' '}
                 SOL
               </p>
               <p className="text-right font-medium">

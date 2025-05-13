@@ -49,32 +49,19 @@ export async function GET(request: Request) {
     // Convert string to PublicKey
     const marketPDA = new PublicKey(marketId)
 
-    // Get market metadata PDA
-    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
-      program.programId
-    )
-
     // Fetch transaction signatures for the market account
     const signatures = await connection.getSignaturesForAddress(marketPDA, {
       limit: 50
     })
 
-    // Get market metadata (current state)
-    const marketMetadata =
-      await program.account.marketMetadata.fetch(marketMetadataPDA)
-    const currentYesAssets = marketMetadata.totalYesAssets.toNumber()
-    const currentNoAssets = marketMetadata.totalNoAssets.toNumber()
+    // Get market data directly (metadata is included in the market account)
+    const market = await program.account.market.fetch(marketPDA)
+    const currentYesAssets = market.metadata.totalYesAssets.toNumber()
+    const currentNoAssets = market.metadata.totalNoAssets.toNumber()
 
     // Create data points based on transaction history
     const dataPoints: ChartDataPoint[] = []
     let trendPercentage = 0
-
-    // Adjust values to use SOL instead of lamports (optionally)
-    // Comment this part out if you want to keep using lamports
-    // const LAMPORTS_PER_SOL = 1_000_000_000
-    // const currentYesAssetsInSol = currentYesAssets / LAMPORTS_PER_SOL
-    // const currentNoAssetsInSol = currentNoAssets / LAMPORTS_PER_SOL
 
     // If we have transactions, create interpolated data
     if (signatures.length > 0) {
