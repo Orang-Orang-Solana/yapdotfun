@@ -11,6 +11,9 @@ use anchor_lang::system_program::{transfer, Transfer};
 
 declare_id!("k4aw18gNq8Z49MejeQoF6B8QnPqkSLehraenkVqC4be");
 
+pub const DUMMY_VALIDATOR_KEY: Pubkey =
+    Pubkey::from_str_const("8UNv1UhmzuhKukVG2eAM7dAZQnMBvt5PUDNQpRJ4Qy4t");
+
 /// The main module for the Yapping program.
 /// It contains all the instructions and account definitions.
 #[program]
@@ -56,15 +59,13 @@ pub mod yapping {
     }
 
     // TODO: Implement these instructions
-    // pub fn close_market(ctx: Context<CloseMarket>) -> Result<()> {
-    //     // CloseMarket::process(ctx)
-    //     todo!()
-    // }
+    pub fn close_market(ctx: Context<CloseMarket>, result: bool) -> Result<()> {
+        CloseMarket::process(ctx, result)
+    }
 
-    // pub fn withdraw_rewards(ctx: Context<WithdrawRewards>) -> Result<()> {
-    //     // WithdrawRewards::process(ctx)
-    //     todo!()
-    // }
+    pub fn withdraw_rewards(ctx: Context<WithdrawRewards>) -> Result<()> {
+        WithdrawRewards::process(ctx)
+    }
 }
 
 /// Accounts required for the `initialize_market` instruction.
@@ -192,6 +193,153 @@ impl<'info> Sell<'info> {
     /// Processes the `sell` instruction.
     fn process(ctx: Context<Self>, shares_amount: u64) -> Result<()> {
         MarketPosition::sell(ctx, shares_amount)
+    }
+}
+
+/// Accounts required for the `withdraw_rewards` instruction.
+#[derive(Accounts)]
+pub struct WithdrawRewards<'info> {
+    /// The signer who is withdrawing rewards.
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    /// The market account from which rewards are being withdrawn.
+    /// The market must be closed.
+    #[account(
+        mut,
+        constraint = market.status == MarketStatus::Closed @ YappingError::MarketNotClosed,
+    )]
+    pub market: Account<'info, Market>,
+    /// The user's position account in the market, holding the shares to withdraw rewards from.
+    /// Its address is derived from "market_position", market key, and signer key.
+    #[account(
+        mut,
+        close = signer,
+        seeds = [
+            b"market_position".as_ref(),
+            market.key().as_ref(),
+            signer.key().as_ref(),
+        ],
+        bump,
+    )]
+    pub market_position: Account<'info, MarketPosition>,
+    /// The vault account associated with this market and user, from which rewards are withdrawn.
+    /// Its address is derived from "vault", market key, and signer key.
+    #[account(
+        mut,
+        seeds = [
+            b"vault".as_ref(),
+            market.key().as_ref(),
+            signer.key().as_ref(),
+        ],
+        bump,
+    )]
+    pub vault: SystemAccount<'info>,
+    /// The Solana system program, required for transfers.
+    pub system_program: Program<'info, System>,
+}
+
+impl<'info> WithdrawRewards<'info> {
+    /// Processes the `withdraw_rewards` instruction.
+    pub fn process(ctx: Context<Self>) -> Result<()> {
+        let market_position = &ctx.accounts.market_position;
+        let market = &ctx.accounts.market;
+
+        // Check if the user has the correct bet matching the market result
+        let has_winning_position = market_position.bet == market.result;
+
+        // Check if the user has any shares
+        require!(market_position.shares > 0, YappingError::NoShares);
+
+        // Calculate total shares for the winning outcome
+        let total_winning_shares = if market.result {
+            market.metadata.total_yes_shares
+        } else {
+            market.metadata.total_no_shares
+        };
+
+        // Check if there are any winning shares in total
+        require!(total_winning_shares > 0, YappingError::NoShares);
+
+        // User must have the correct bet to claim rewards
+        require!(has_winning_position, YappingError::NoShares);
+
+        // Get the vault's current balance
+        let vault_balance = ctx.accounts.vault.lamports();
+
+        // Transfer the vault's funds to the user
+        if vault_balance > 0 {
+            let market_key_val = market.key();
+            let market_key_bytes = market_key_val.as_ref();
+            let signer_key_val = ctx.accounts.signer.key();
+            let signer_key_bytes = signer_key_val.as_ref();
+            let bump_slice = &[ctx.bumps.vault];
+
+            let vault_seeds: &[&[u8]] = &[b"vault", market_key_bytes, signer_key_bytes, bump_slice];
+
+            transfer(
+                CpiContext::new_with_signer(
+                    ctx.accounts.system_program.to_account_info(),
+                    Transfer {
+                        from: ctx.accounts.vault.to_account_info(),
+                        to: ctx.accounts.signer.to_account_info(),
+                    },
+                    &[vault_seeds],
+                ),
+                vault_balance,
+            )?;
+        }
+
+        Ok(())
+    }
+}
+
+/// Accounts required for the `close_market` instruction.
+#[derive(Accounts)]
+pub struct CloseMarket<'info> {
+    /// The validator who is closing the market.
+    /// Must be the dummy validator for testing (in production, this would be a proper validator).
+    #[account(
+        constraint = signer.key() == DUMMY_VALIDATOR_KEY @ YappingError::NotValidator
+    )]
+    pub signer: Signer<'info>,
+    /// The market account to be closed.
+    /// The market must be open.
+    #[account(
+        mut,
+        constraint = market.status == MarketStatus::Open @ YappingError::MarketStatusClosed,
+        constraint = Clock::get()?.unix_timestamp as u64 >= market.end_time @ YappingError::MarketNotClosed,
+    )]
+    pub market: Account<'info, Market>,
+}
+
+impl<'info> CloseMarket<'info> {
+    /// Processes the `close_market` instruction.
+    /// Sets the market status to Closed and updates the result.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context for this instruction.
+    /// * `result` - The result of the market (true for YES, false for NO).
+    ///
+    /// # Returns
+    ///
+    /// * `Result<()>` - The result of the operation.
+    pub fn process(ctx: Context<Self>, result: bool) -> Result<()> {
+        let market = &mut ctx.accounts.market;
+
+        // Set the market status to closed
+        market.status = MarketStatus::Closed;
+
+        // Set the market result
+        market.result = result;
+
+        // Emit event
+        emit!(MarketClosed {
+            market_id: market.key(),
+            result,
+        });
+
+        Ok(())
     }
 }
 

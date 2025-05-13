@@ -10,6 +10,7 @@ import {
 } from '@solana/web3.js'
 
 import type { Yapping } from '../target/types/yapping'
+import validatorKp from './keypairs/validatorkp.json'
 
 export const FACTOR = 1000000
 
@@ -41,14 +42,7 @@ export function hashString(str: string): Buffer {
  * Create a validator keypair for testing
  */
 export function getValidatorKeypair(): Keypair {
-  return Keypair.fromSecretKey(
-    new Uint8Array([
-      96, 72, 59, 139, 230, 201, 113, 65, 242, 61, 1, 234, 235, 30, 210, 203,
-      37, 139, 250, 139, 140, 216, 91, 79, 6, 150, 206, 239, 88, 242, 67, 135,
-      95, 97, 47, 93, 235, 6, 127, 156, 200, 141, 180, 240, 247, 182, 16, 254,
-      197, 90, 40, 167, 155, 4, 65, 157, 41, 117, 84, 73, 44, 57, 27, 224
-    ])
-  )
+  return Keypair.fromSecretKey(new Uint8Array(validatorKp))
 }
 
 /**

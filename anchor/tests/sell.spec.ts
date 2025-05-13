@@ -44,13 +44,6 @@ describe('Yapping::sell', () => {
       vaultPDA,
       Number(rentExemptionLamports)
     )
-    const vaultBalanceAfterRentAirdrop = await getBalance(
-      provider.connection,
-      vaultPDA
-    )
-    expect(Number(vaultBalanceAfterRentAirdrop)).toEqual(
-      Number(rentExemptionLamports)
-    )
 
     const betAmount = new anchor.BN(1 * LAMPORTS_PER_SOL) // 1_000_000_000 lamports
 

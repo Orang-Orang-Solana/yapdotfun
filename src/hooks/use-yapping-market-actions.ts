@@ -230,7 +230,63 @@ export function useYappingMarketActions() {
   const { mutateAsync: withdrawRewards } = useMutation({
     mutationKey: ['yapping', 'withdrawRewards', { cluster }],
     mutationFn: async (params: { marketPDA: PublicKey }) => {
-      throw new Error('Not implemented')
+      if (!provider.wallet.publicKey) {
+        throw new Error('Wallet not connected')
+      }
+
+      const [marketPositionPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('market_position'),
+          params.marketPDA.toBuffer(),
+          provider.wallet.publicKey.toBuffer()
+        ],
+        program.programId
+      )
+
+      const [vaultPDA] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('vault'),
+          params.marketPDA.toBuffer(),
+          provider.wallet.publicKey.toBuffer()
+        ],
+        program.programId
+      )
+
+      console.log({
+        marketPDA: params.marketPDA.toBase58(),
+        marketPositionPDA: marketPositionPDA.toBase58(),
+        vaultPDA: vaultPDA.toBase58(),
+        signer: provider.wallet.publicKey.toBase58()
+      })
+
+      try {
+        return await program.methods
+          .withdrawRewards()
+          .accounts({
+            market: params.marketPDA,
+            signer: provider.wallet.publicKey
+          })
+          .rpc()
+      } catch (error) {
+        console.error('Error executing withdraw rewards transaction:', error)
+        toast.error(`Failed to withdraw rewards: ${(error as Error).message}`)
+        throw error
+      }
+    },
+    onSuccess: (signature, variables) => {
+      transactionToast(signature)
+      toast.success('Your rewards have been withdrawn successfully!')
+      invalidateMarketData(variables.marketPDA.toBase58())
+    },
+    onError: (error: unknown) => {
+      if (error instanceof Error) {
+        if (!error.message?.includes('Failed to withdraw rewards')) {
+          toast.error(`Withdrawal failed: ${error.message}`)
+        }
+      } else {
+        toast.error('An unknown error occurred during rewards withdrawal.')
+      }
+      console.error(error)
     }
   })
 
