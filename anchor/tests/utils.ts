@@ -6,10 +6,12 @@ import {
   type Connection,
   Keypair,
   LAMPORTS_PER_SOL,
-  type PublicKey
+  PublicKey
 } from '@solana/web3.js'
 
 import type { Yapping } from '../target/types/yapping'
+
+export const FACTOR = 1000000
 
 /**
  * Setup the Anchor provider and program
@@ -69,4 +71,36 @@ export async function airdropSol(
     LAMPORTS_PER_SOL * amount
   )
   await connection.confirmTransaction(tx)
+}
+
+/**
+ * Get the balance of a wallet
+ */
+export async function getBalance(
+  connection: Connection,
+  address: PublicKey
+): Promise<number> {
+  const balance = await connection.getBalance(address)
+  return balance / LAMPORTS_PER_SOL
+}
+
+export async function initializeMarket(
+  program: Program<Yapping>,
+  user: PublicKey,
+  description: string,
+  imageUrl: string,
+  endTime: number
+) {
+  const [marketPDA] = PublicKey.findProgramAddressSync(
+    [Buffer.from('market'), hashString(description)],
+    program.programId
+  )
+
+  await program.methods
+    .initializeMarket(description, imageUrl, new anchor.BN(endTime))
+    .accounts({
+      signer: user,
+      market: marketPDA
+    })
+    .rpc()
 }

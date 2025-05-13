@@ -1,7 +1,7 @@
 import * as anchor from '@coral-xyz/anchor'
-import { PublicKey } from '@solana/web3.js'
+import { Keypair, PublicKey } from '@solana/web3.js'
 
-import { hashString, setupProgram } from './utils'
+import { airdropSol, hashString, setupProgram } from './utils'
 
 describe('Yapping::initialize_market', () => {
   const { program, provider, user } = setupProgram()
@@ -71,8 +71,6 @@ describe('Yapping::initialize_market', () => {
       })
     )
 
-    const marketAccounts = await program.account.market.all()
-
     for (const market of markets) {
       const [marketPDA] = PublicKey.findProgramAddressSync(
         [Buffer.from('market'), hashString(market.description)],
@@ -85,6 +83,38 @@ describe('Yapping::initialize_market', () => {
       expect(marketAccount.endTime.toNumber()).toBeGreaterThanOrEqual(
         market.endTime
       )
+    }
+  })
+
+  it('should succeed when multiple users initialize the diff market', async () => {
+    const users = [Keypair.generate(), Keypair.generate(), Keypair.generate()]
+
+    try {
+      for (const user of users) {
+        // airdrop sol to each user
+        await airdropSol(provider.connection, user.publicKey, 5)
+
+        const description = `Test Market ${user.publicKey.toBase58()}`
+        const imageUrl = 'https://example.com/image.png'
+        const endTime = new Date().getTime() + 1000 * 60 * 60 * 24 * 2
+
+        const [marketPDA] = PublicKey.findProgramAddressSync(
+          [Buffer.from('market'), hashString(description)],
+          program.programId
+        )
+
+        await program.methods
+          .initializeMarket(description, imageUrl, new anchor.BN(endTime))
+          .accounts({
+            signer: user.publicKey,
+            market: marketPDA
+          })
+          .signers([user])
+          .rpc()
+      }
+    } catch (error) {
+      console.error(error)
+      expect(error).not.toBeDefined()
     }
   })
 

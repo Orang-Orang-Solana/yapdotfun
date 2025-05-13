@@ -68,7 +68,7 @@ pub struct InitializeMarket<'info> {
     #[account(
         init,
         payer = signer,
-        space = 0x008 + Market::INIT_SPACE + &description.to_hashed_bytes()[..].len(),
+        space = 0x008 + Market::INIT_SPACE,
         seeds = [
             b"market".as_ref(),
             &description.to_hashed_bytes()[..]
@@ -106,7 +106,7 @@ pub struct Buy<'info> {
     /// or updated if it\'s an existing position.
     /// Its address is derived from "market_position", market key, and signer key.
     #[account(
-        init,
+        init_if_needed,
         payer = signer,
         space = 0x008 + MarketPosition::INIT_SPACE,
         seeds = [
@@ -120,6 +120,7 @@ pub struct Buy<'info> {
     /// The vault account associated with this market and user, holding the lamports.
     /// Its address is derived from "vault", market key, and signer key.
     #[account(
+        mut,
         seeds = [
             b"vault".as_ref(),
             market.key().as_ref(),
@@ -183,79 +184,6 @@ impl<'info> Sell<'info> {
     }
 }
 
-const PRECISION_FACTOR: u64 = 1_000_000;
-
-/// Represents a quantity of shares in a market.
-/// Shares are used to determine a user\'s stake and potential payout.
-#[derive(InitSpace, Clone, AnchorSerialize, AnchorDeserialize, Default)]
-pub struct Shares(u64);
-
-impl Shares {
-    /// Creates a new `Shares` instance.
-    pub fn new(amount: u64) -> Self {
-        Self(amount)
-    }
-
-    /// Returns the underlying `u64` value of the shares.
-    pub fn value(&self) -> u64 {
-        self.0
-    }
-
-    /// Converts shares back to lamports based on a given price.
-    /// Uses `PRECISION_FACTOR` for calculation.
-    pub fn to_lamports(&self, price: u64) -> u64 {
-        let shares_value = self.0;
-        if shares_value == 0 {
-            0
-        } else {
-            // Calculate lamports based on shares and price
-            shares_value
-                .saturating_mul(price)
-                .saturating_div(PRECISION_FACTOR)
-        }
-    }
-}
-
-/// A trait for converting a value (e.g., lamports) into `Shares`.
-trait IntoShares {
-    /// Converts the implementing type to `Shares` based on a given price.
-    fn to_shares(&self, price: u64) -> Shares;
-}
-
-impl IntoShares for u64 {
-    /// Converts `u64` (lamports) to `Shares`.
-    /// Uses `PRECISION_FACTOR` for calculation.
-    fn to_shares(&self, price: u64) -> Shares {
-        let amount = *self;
-        if price == 0 {
-            Shares(0) // Avoid division by zero
-        } else {
-            // Calculate shares with precision factor to avoid rounding errors
-            Shares(
-                amount
-                    .saturating_mul(PRECISION_FACTOR)
-                    .saturating_div(price),
-            )
-        }
-    }
-}
-
-/// Calculates the price for buying shares.
-/// This is a placeholder and should be replaced with actual market-based pricing logic.
-fn calculate_price_buy(_market: &Market, _bet: bool, _amount: u64) -> u64 {
-    // Simple fixed price implementation similar to Solidity example
-    // This can be expanded to implement proper pricing logic based on market conditions
-    1_000_000 // Fixed price (e.g., 1 SOL in lamports if 1 SOL = 1_000_000_000 lamports and price is per share)
-}
-
-/// Calculates the price for selling shares.
-/// This is a placeholder and should be replaced with actual market-based pricing logic.
-fn calculate_price_sell(_market: &Market, _bet: bool, _shares: &Shares) -> u64 {
-    // Simple fixed price implementation similar to Solidity example
-    // This can be expanded to implement proper pricing logic based on market conditions
-    1_000_000 // Fixed price
-}
-
 /// Represents a prediction market.
 #[account]
 #[derive(InitSpace)]
@@ -282,9 +210,9 @@ pub struct MarketMetadata {
     /// Total lamports committed to the NO outcome.
     pub total_no_assets: u64,
     /// Total shares issued for the YES outcome.
-    pub total_yes_shares: Shares,
+    pub total_yes_shares: u64,
     /// Total shares issued for the NO outcome.
-    pub total_no_shares: Shares,
+    pub total_no_shares: u64,
 }
 
 impl Market {
@@ -325,7 +253,7 @@ pub struct MarketPosition {
     /// The total amount of lamports the user has committed to this position.
     pub amount: u64,
     /// The number of shares the user holds for this position.
-    pub shares: Shares,
+    pub shares: u64,
     /// The user\'s bet (true for YES, false for NO).
     pub bet: bool,
 }
@@ -337,7 +265,7 @@ impl Default for MarketPosition {
             market_id: Pubkey::default(),
             position_id: Pubkey::default(),
             amount: 0,
-            shares: Shares::default(),
+            shares: 0,
             bet: false,
         }
     }
@@ -347,6 +275,24 @@ impl MarketPosition {
     /// Processes the logic for a user buying shares in a market.
     /// Updates the user\'s position and the market\'s metadata.
     /// Transfers lamports from the user to the vault.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context for this instruction.
+    /// * `bet` - A boolean indicating the user's prediction (true for YES, false for NO).
+    /// * `lamports_amount` - The amount of lamports the user is spending to buy shares.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<()>` - The result of the operation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// * The market is closed (end time has passed)
+    /// * The lamports amount is zero
+    /// * The calculated shares amount is zero
+    /// * The user tries to buy a different outcome than their existing position
     pub fn buy(ctx: Context<Buy>, bet: bool, lamports_amount: u64) -> Result<()> {
         let market_position = &mut ctx.accounts.market_position;
         let market = &mut ctx.accounts.market;
@@ -355,23 +301,15 @@ impl MarketPosition {
             market.end_time > Clock::get()?.unix_timestamp as u64,
             YappingError::MarketStatusClosed
         );
-        msg!("Market is already closed.");
+        msg!("MarketStatusClosed::checks > passed");
 
         require!(lamports_amount > 0, YappingError::NotEnoughShares);
-        msg!("Lamport amount must be greater than zero.");
+        msg!("NotEnoughShares::checks > passed");
 
-        // Calculate shares based on lamports amount
-        let price = calculate_price_buy(market, bet, lamports_amount);
-        let shares_bought = lamports_amount.to_shares(price);
+        let shares_bought = calculate_buy_price(market, bet, lamports_amount);
 
-        require!(shares_bought.value() > 0, YappingError::NotEnoughShares);
-        msg!("Calculated shares must be greater than zero.");
-
-        // Initialize market position if it\'s a new buy for this user in this market
-        // or update if it\'s an existing position.
-        // For simplicity, this implementation assumes a new position is created with `init`
-        // in the `Buy` accounts struct. If allowing multiple buys into the same outcome,
-        // this logic would need to check `market_position.amount` or `market_position.shares`.
+        require!(shares_bought > 0, YappingError::NotEnoughShares);
+        msg!("NotEnoughShares::checks > passed");
 
         if market_position.amount == 0 {
             // Assuming new position if amount is 0
@@ -379,48 +317,42 @@ impl MarketPosition {
             market_position.position_id = ctx.accounts.signer.key();
             market_position.bet = bet;
         } else {
-            // If position already exists, ensure the new bet is for the same outcome
             require!(market_position.bet == bet, YappingError::BetMismatch);
-            msg!("Cannot buy for a different outcome in an existing position.");
+            msg!("BetMismatch::checks > passed");
         }
 
         market_position.amount = market_position.amount.saturating_add(lamports_amount);
-        market_position.shares.0 = market_position
-            .shares
-            .0
-            .saturating_add(shares_bought.value());
+        market_position.shares = market_position.shares.saturating_add(shares_bought);
 
         if bet {
             market.metadata.total_yes_assets = market
                 .metadata
                 .total_yes_assets
                 .saturating_add(lamports_amount);
-            market.metadata.total_yes_shares.0 = market
+            market.metadata.total_yes_shares = market
                 .metadata
                 .total_yes_shares
-                .0
-                .saturating_add(shares_bought.value());
+                .saturating_add(shares_bought);
+            msg!("total_yes_assets::checks > passed");
         } else {
             market.metadata.total_no_assets = market
                 .metadata
                 .total_no_assets
                 .saturating_add(lamports_amount);
-            market.metadata.total_no_shares.0 = market
+            market.metadata.total_no_shares = market
                 .metadata
                 .total_no_shares
-                .0
-                .saturating_add(shares_bought.value());
+                .saturating_add(shares_bought);
         }
 
         emit!(MarketPositionCreated {
             market_id: market.key(),
             position_id: market_position.position_id,
-            amount: lamports_amount, // Emitting the amount for this specific buy
+            amount: lamports_amount,
             bet: market_position.bet,
-            shares: shares_bought.value(), // Emitting shares for this specific buy
+            shares: shares_bought,
         });
 
-        // Transfer lamports from signer to vault using system program
         transfer(
             CpiContext::new(
                 ctx.accounts.system_program.to_account_info(),
@@ -438,6 +370,23 @@ impl MarketPosition {
     /// Processes the logic for a user selling shares in a market.
     /// Updates the user\'s position and the market\'s metadata.
     /// Transfers lamports from the vault back to the user.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context for this instruction.
+    /// * `shares_to_sell_amount` - The amount of shares the user wants to sell.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<()>` - The result of the operation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// * The market is closed (end time has passed)
+    /// * The user doesn't have enough shares
+    /// * The shares amount is zero
+    /// * The calculated lamports return amount is zero or too low
     pub fn sell(ctx: Context<Sell>, shares_to_sell_amount: u64) -> Result<()> {
         let market_position = &mut ctx.accounts.market_position;
         let market = &mut ctx.accounts.market;
@@ -446,55 +395,35 @@ impl MarketPosition {
             market.end_time > Clock::get()?.unix_timestamp as u64,
             YappingError::MarketStatusClosed
         );
-        msg!("Market is already closed, cannot sell shares.");
 
-        let shares_to_sell = Shares(shares_to_sell_amount);
-
-        // Ensure user has enough shares
         require!(
-            market_position.shares.value() >= shares_to_sell_amount,
+            market_position.shares >= shares_to_sell_amount,
             YappingError::NotEnoughShares
         );
-        msg!("Not enough shares to sell.");
 
         require!(shares_to_sell_amount > 0, YappingError::NotEnoughShares);
-        msg!("Shares to sell must be greater than zero.");
 
-        // Calculate lamports to return based on shares
-        let price = calculate_price_sell(market, market_position.bet, &shares_to_sell);
-        let lamports_to_return = shares_to_sell.to_lamports(price);
+        let lamports_to_return =
+            calculate_sell_price(market, market_position.bet, shares_to_sell_amount);
 
         require!(lamports_to_return > 0, YappingError::PriceTooLow);
-        msg!("Calculated return lamports must be greater than zero.");
 
-        // Update market position
-        // Note: This assumes shares are fungible and doesn't track specific buys.
-        // The `amount` in MarketPosition might need more careful handling if it's meant
-        // to be an average cost or something similar. For now, it reflects the total invested.
-        // We reduce shares directly. Reducing `amount` proportionally would be more complex.
-        market_position.shares.0 = market_position
-            .shares
-            .0
-            .saturating_sub(shares_to_sell_amount);
-        // For simplicity, `amount` is not reduced here. A more robust system might track
-        // average cost per share or reduce amount proportionally.
+        market_position.shares = market_position.shares.saturating_sub(shares_to_sell_amount);
+        market_position.amount = market_position.amount.saturating_sub(lamports_to_return);
 
-        // Update market metadata
         if market_position.bet {
-            market.metadata.total_yes_shares.0 = market
+            market.metadata.total_yes_shares = market
                 .metadata
                 .total_yes_shares
-                .0
                 .saturating_sub(shares_to_sell_amount);
             market.metadata.total_yes_assets = market
                 .metadata
                 .total_yes_assets
                 .saturating_sub(lamports_to_return);
         } else {
-            market.metadata.total_no_shares.0 = market
+            market.metadata.total_no_shares = market
                 .metadata
                 .total_no_shares
-                .0
                 .saturating_sub(shares_to_sell_amount);
             market.metadata.total_no_assets = market
                 .metadata
@@ -502,22 +431,14 @@ impl MarketPosition {
                 .saturating_sub(lamports_to_return);
         }
 
-        // Get the market key and signer key as bytes to use in seeds for the vault
-        let market_key_val = market.key(); // Store Pubkey value
-        let market_key_bytes = market_key_val.as_ref(); // Get reference to its bytes
-        let signer_key_val = ctx.accounts.signer.key(); // Store Pubkey value
-        let signer_key_bytes = signer_key_val.as_ref(); // Get reference to its bytes
-        let bump_slice = &[ctx.bumps.vault]; // Correctly create a slice for the bump
+        let market_key_val = market.key();
+        let market_key_bytes = market_key_val.as_ref();
+        let signer_key_val = ctx.accounts.signer.key();
+        let signer_key_bytes = signer_key_val.as_ref();
+        let bump_slice = &[ctx.bumps.vault];
 
-        // PDA signer seeds for the vault
-        let vault_seeds: &[&[u8]] = &[
-            b"vault",
-            market_key_bytes,
-            signer_key_bytes,
-            bump_slice, // Use the slice here
-        ];
+        let vault_seeds: &[&[u8]] = &[b"vault", market_key_bytes, signer_key_bytes, bump_slice];
 
-        // Transfer lamports from vault to signer using the System Program with PDA signing
         transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.system_program.to_account_info(),
@@ -525,7 +446,7 @@ impl MarketPosition {
                     from: ctx.accounts.vault.to_account_info(),
                     to: ctx.accounts.signer.to_account_info(),
                 },
-                &[vault_seeds], // Pass the seeds correctly as a slice of slices
+                &[vault_seeds],
             ),
             lamports_to_return,
         )?;
@@ -539,6 +460,45 @@ impl MarketPosition {
 
         Ok(())
     }
+}
+
+/// Precision factor used for price calculations.
+/// This constant defines the ratio between lamports and shares in the prediction market.
+/// A higher factor means shares are more expensive in terms of lamports.
+pub const FACTOR: u64 = 1_000_000;
+
+/// Calculates the number of shares to issue when buying with a given amount of lamports.
+/// Uses a simple linear pricing model where shares = lamports / FACTOR.
+/// This function determines how many shares a user receives for their investment.
+///
+/// # Arguments
+///
+/// * `_market` - The market account (currently unused but reserved for future advanced pricing models).
+/// * `_bet` - The bet direction (YES/NO) (currently unused but reserved for future differential pricing).
+/// * `lamports_amount` - The amount of lamports the user is investing.
+///
+/// # Returns
+///
+/// * `u64` - The number of shares to issue to the user.
+pub fn calculate_buy_price(_market: &Market, _bet: bool, lamports_amount: u64) -> u64 {
+    lamports_amount.saturating_div(FACTOR)
+}
+
+/// Calculates the amount of lamports to return when selling a given number of shares.
+/// Uses a simple linear pricing model where lamports = shares * FACTOR.
+/// This function determines how many lamports a user receives when selling their shares.
+///
+/// # Arguments
+///
+/// * `_market` - The market account (currently unused but reserved for future advanced pricing models).
+/// * `_bet` - The bet direction (YES/NO) (currently unused but reserved for future differential pricing).
+/// * `shares_amount` - The number of shares the user is selling.
+///
+/// # Returns
+///
+/// * `u64` - The amount of lamports to return to the user.
+pub fn calculate_sell_price(_market: &Market, _bet: bool, shares_amount: u64) -> u64 {
+    shares_amount.saturating_mul(FACTOR)
 }
 
 /// Event emitted when a market is initialized.
