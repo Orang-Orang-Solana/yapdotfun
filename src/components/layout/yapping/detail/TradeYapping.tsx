@@ -103,17 +103,8 @@ export default function TradeYapping({
         `Successfully placed ${betting === 1 ? 'YES' : 'NO'} bet of ${amount} SOL`
       )
 
-      // Trigger UI updates by dispatching a custom event
-      window.dispatchEvent(
-        new CustomEvent('market-update', {
-          detail: { marketId: marketPublicKey }
-        })
-      )
-
-      // Also try to use the global refresh function if available
-      if (window.refreshMarketChart) {
-        window.refreshMarketChart(marketPublicKey)
-      }
+      // No need to manually dispatch events or refresh the chart anymore
+      // This is now handled by the invalidateMarketData function in our hook
 
       // Reset form
       setAmount('')

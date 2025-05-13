@@ -5,8 +5,8 @@ import toast from 'react-hot-toast'
 import { useCluster } from '@/components/cluster/cluster-data-access'
 import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { useTransactionToast } from '@/components/ui/ui-layout'
+import { useQueryInvalidation } from '@/hooks/use-query-invalidation'
 import type * as anchorTypes from '@coral-xyz/anchor'
-import * as anchor from '@coral-xyz/anchor'
 import {
   getYappingProgram,
   YAPPING_PROGRAM_ID as programId
@@ -21,6 +21,7 @@ export function useYappingMarketActions() {
   const transactionToast = useTransactionToast()
   const provider = useAnchorProvider()
   const program = getYappingProgram(provider)
+  const { invalidateMarketData } = useQueryInvalidation()
 
   const getProgramAccount = useQuery({
     queryKey: ['get-program-account', { cluster }],
@@ -117,9 +118,10 @@ export function useYappingMarketActions() {
         throw error
       }
     },
-    onSuccess: (signature) => {
+    onSuccess: (signature, variables) => {
       transactionToast(signature)
       toast.success('Your bet has been placed successfully!')
+      invalidateMarketData(variables.marketPDA.toBase58())
     },
     onError: (error) => {
       toast.error('Failed to place bet')
@@ -161,24 +163,22 @@ export function useYappingMarketActions() {
       })
 
       try {
-        // Use lower-level rpc call to bypass TypeScript checking
-        return await program.rpc.sell(params.bet, params.shares, {
-          accounts: {
+        return await program.methods
+          .sell(params.bet, params.shares)
+          .accounts({
             market: params.marketPDA,
-            marketMetadata: marketMetadataPDA,
-            marketVoter: marketVoterPDA,
-            signer: provider.wallet.publicKey,
-            systemProgram: anchor.web3.SystemProgram.programId
-          }
-        })
+            signer: provider.wallet.publicKey
+          })
+          .rpc()
       } catch (error) {
         console.error('Error executing sell transaction:', error)
         throw error
       }
     },
-    onSuccess: (signature) => {
+    onSuccess: (signature, variables) => {
       transactionToast(signature)
       toast.success('Your shares have been sold successfully!')
+      invalidateMarketData(variables.marketPDA.toBase58())
     },
     onError: (error) => {
       toast.error('Failed to sell shares')
@@ -236,9 +236,10 @@ export function useYappingMarketActions() {
         throw error
       }
     },
-    onSuccess: (signature) => {
+    onSuccess: (signature, variables) => {
       transactionToast(signature)
       toast.success('Rewards withdrawn successfully!')
+      invalidateMarketData(variables.marketPDA.toBase58())
     },
     onError: (error) => {
       toast.error('Failed to withdraw rewards')

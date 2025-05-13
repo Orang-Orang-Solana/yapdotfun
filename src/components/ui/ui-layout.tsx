@@ -54,7 +54,7 @@ export function UiLayout({
         <Suspense
           fallback={
             <div className="text-center my-32">
-              <span className="loading loading-spinner loading-lg"></span>
+              <span className="loading loading-spinner loading-lg" />
             </div>
           }
         >
@@ -107,7 +107,7 @@ export function AppModal({
     } else {
       dialogRef.current.close()
     }
-  }, [show, dialogRef])
+  }, [show])
 
   return (
     <dialog className="modal" ref={dialogRef}>
@@ -118,6 +118,7 @@ export function AppModal({
           <div className="join space-x-2">
             {submit ? (
               <button
+                type="button"
                 className="btn btn-xs lg:btn-md btn-primary"
                 onClick={submit}
                 disabled={submitDisabled}
@@ -125,7 +126,7 @@ export function AppModal({
                 {submitLabel || 'Save'}
               </button>
             ) : null}
-            <button onClick={hide} className="btn">
+            <button type="button" onClick={hide} className="btn">
               Close
             </button>
           </div>
@@ -167,9 +168,7 @@ export function AppHero({
 
 export function ellipsify(str = '', len = 4) {
   if (str.length > 30) {
-    return (
-      str.substring(0, len) + '..' + str.substring(str.length - len, str.length)
-    )
+    return `${str.substring(0, len)}..${str.substring(str.length - len, str.length)}`
   }
   return str
 }

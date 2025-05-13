@@ -2,15 +2,16 @@
 
 import toast from 'react-hot-toast'
 
+import { useQueryInvalidation } from '@/hooks/use-query-invalidation'
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import {
-  Connection,
+  type Connection,
   LAMPORTS_PER_SOL,
-  PublicKey,
+  type PublicKey,
   SystemProgram,
   TransactionMessage,
-  TransactionSignature,
+  type TransactionSignature,
   VersionedTransaction
 } from '@solana/web3.js'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -62,6 +63,7 @@ export function useTransferSol({ address }: { address: PublicKey }) {
   const transactionToast = useTransactionToast()
   const wallet = useWallet()
   const client = useQueryClient()
+  const { invalidateBalanceData } = useQueryInvalidation()
 
   return useMutation({
     mutationKey: [
@@ -99,20 +101,7 @@ export function useTransferSol({ address }: { address: PublicKey }) {
       if (signature) {
         transactionToast(signature)
       }
-      return Promise.all([
-        client.invalidateQueries({
-          queryKey: [
-            'get-balance',
-            { endpoint: connection.rpcEndpoint, address }
-          ]
-        }),
-        client.invalidateQueries({
-          queryKey: [
-            'get-signatures',
-            { endpoint: connection.rpcEndpoint, address }
-          ]
-        })
-      ])
+      invalidateBalanceData()
     },
     onError: (error) => {
       toast.error(`Transaction failed! ${error}`)
@@ -124,13 +113,17 @@ export function useRequestAirdrop({ address }: { address: PublicKey }) {
   const { connection } = useConnection()
   const transactionToast = useTransactionToast()
   const client = useQueryClient()
+  const { invalidateBalanceData } = useQueryInvalidation()
 
-  return useMutation({
+  return useMutation<string, Error, number>({
     mutationKey: ['airdrop', { endpoint: connection.rpcEndpoint, address }],
-    mutationFn: async (amount: number = 1) => {
+    mutationFn: async (amount = 1) => {
+      // Convert amount to lamports (LAMPORTS_PER_SOL is a numeric constant)
+      const lamports = Number(amount) * LAMPORTS_PER_SOL
+
       const [latestBlockhash, signature] = await Promise.all([
         connection.getLatestBlockhash(),
-        connection.requestAirdrop(address, amount * LAMPORTS_PER_SOL)
+        connection.requestAirdrop(address, lamports)
       ])
 
       await connection.confirmTransaction(
@@ -141,20 +134,7 @@ export function useRequestAirdrop({ address }: { address: PublicKey }) {
     },
     onSuccess: (signature) => {
       transactionToast(signature)
-      return Promise.all([
-        client.invalidateQueries({
-          queryKey: [
-            'get-balance',
-            { endpoint: connection.rpcEndpoint, address }
-          ]
-        }),
-        client.invalidateQueries({
-          queryKey: [
-            'get-signatures',
-            { endpoint: connection.rpcEndpoint, address }
-          ]
-        })
-      ])
+      invalidateBalanceData()
     }
   })
 }

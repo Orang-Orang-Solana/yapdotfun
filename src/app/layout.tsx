@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/config/ThemeProvider'
 
 import './globals.css'
+import { QueryInvalidationProvider } from './query-invalidation-provider'
 import { ReactQueryProvider } from './react-query-provider'
 
 const inter = Inter({
@@ -33,13 +34,15 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <ReactQueryProvider>
-            <ClusterProvider>
-              <SolanaProvider>
-                <Header />
-                {children}
-                {/* <UiLayout links={links}>{children}</UiLayout> */}
-              </SolanaProvider>
-            </ClusterProvider>
+            <QueryInvalidationProvider>
+              <ClusterProvider>
+                <SolanaProvider>
+                  <Header />
+                  {children}
+                  {/* <UiLayout links={links}>{children}</UiLayout> */}
+                </SolanaProvider>
+              </ClusterProvider>
+            </QueryInvalidationProvider>
           </ReactQueryProvider>
           <Toaster />
         </ThemeProvider>

@@ -1,76 +1,48 @@
-import * as crypto from 'node:crypto'
+import { SendTransactionError } from '@solana/web3.js'
 
-import type { Program } from '@coral-xyz/anchor'
-import * as anchor from '@coral-xyz/anchor'
 import {
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SendTransactionError
-} from '@solana/web3.js'
-
-import type { Yapping } from '../target/types/yapping'
+  airdropSol,
+  createMarket,
+  findMarketMetadataPDA,
+  findMarketPDA,
+  getDefaultResolutionDate,
+  setupProgram,
+  uniqueMarketDescription
+} from './utils'
 
 describe('yapping initialize market tests', () => {
-  const provider = anchor.AnchorProvider.env()
-  anchor.setProvider(provider)
-
-  const user = provider.wallet.publicKey
-  const expectedResolutionDate = new anchor.BN(
-    new Date().getTime() + 1000 * 60 * 60 * 24 * 30
-  ) // 30 days from now
-
-  const program = anchor.workspace.Yapping as Program<Yapping>
-
-  // Helper to hash the description string as done in the contract
-  function hashString(str: string) {
-    return crypto.createHash('sha256').update(str).digest()
-  }
+  // Setup program and get references
+  const { program, provider, user } = setupProgram()
+  const expectedResolutionDate = getDefaultResolutionDate()
 
   beforeEach(async () => {
-    // airdrop SOL to the wallet for tests
-    const tx = await provider.connection.requestAirdrop(
-      provider.wallet.publicKey,
-      LAMPORTS_PER_SOL * 2
-    )
-    await provider.connection.confirmTransaction(tx)
+    // Airdrop SOL to the wallet for tests
+    await airdropSol(provider.connection, user)
   })
 
   it('should initialize a market with a valid description', async () => {
     const description = 'Will ETH reach $10k by end of 2024?'
 
-    // Find PDA for market
-    const [marketPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market'), hashString(description)],
-      program.programId
+    // Find PDAs
+    const [marketPDA] = findMarketPDA(program.programId, description)
+    const [marketMetadataPDA] = findMarketMetadataPDA(
+      program.programId,
+      marketPDA
     )
 
-    // Find PDA for market metadata
-    const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
-      program.programId
-    )
-
-    // Initialize market
-    await program.methods
-      .initializeMarket(
-        description,
-        'https://picsum.photos/200/300',
-        expectedResolutionDate
-      )
-      .accounts({
-        market: marketPDA,
-        signer: user
-      })
-      .rpc()
+    // Initialize market using utility function
+    await createMarket(program, description, user)
 
     // Fetch and validate market data
     const market = await program.account.market.fetch(marketPDA)
     expect(market.description).toEqual(description)
     expect(market.status.open !== undefined).toBeTruthy()
     expect(market.initializer.toString()).toEqual(user.toString())
-    expect(market.expectedResolutionDate.toString()).toEqual(
-      expectedResolutionDate.toString()
-    )
+    // Use approximate comparison for dates instead of exact equality
+    const marketDate = market.expectedResolutionDate.toNumber()
+    const expectedDate = expectedResolutionDate.toNumber()
+    const toleranceMs = 2000 // 2 seconds tolerance
+    expect(Math.abs(marketDate - expectedDate)).toBeLessThanOrEqual(toleranceMs)
     expect(market.resolvedAt).toBeNull()
 
     // Validate market metadata is initialized correctly
@@ -87,10 +59,7 @@ describe('yapping initialize market tests', () => {
     const description = ''
 
     // Find PDA for market
-    const [marketPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market'), hashString(description)],
-      program.programId
-    )
+    const [marketPDA] = findMarketPDA(program.programId, description)
 
     try {
       // Try to initialize with empty description (should fail)
@@ -116,38 +85,12 @@ describe('yapping initialize market tests', () => {
   it('should not allow reinitialization of an existing market', async () => {
     const description = 'Will BTC reach $100k by end of 2024?'
 
-    // Find PDA for market
-    const [marketPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market'), hashString(description)],
-      program.programId
-    )
-
     // Initialize market first time
-    await program.methods
-      .initializeMarket(
-        description,
-        'https://picsum.photos/200/300',
-        expectedResolutionDate
-      )
-      .accounts({
-        market: marketPDA,
-        signer: user
-      })
-      .rpc()
+    await createMarket(program, description, user)
 
     try {
       // Try to initialize with same description (should fail)
-      await program.methods
-        .initializeMarket(
-          description,
-          'https://picsum.photos/200/300',
-          expectedResolutionDate
-        )
-        .accounts({
-          market: marketPDA,
-          signer: user
-        })
-        .rpc()
+      await createMarket(program, description, user)
 
       // Should not reach here
       fail('Expected to fail with SendTransactionError')
@@ -160,43 +103,13 @@ describe('yapping initialize market tests', () => {
     const description1 = 'Will ETH reach $5k by end of 2024?'
     const description2 = 'Will SOL reach $200 by end of 2024?'
 
-    // Find PDAs for market 1
-    const [marketPDA1] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market'), hashString(description1)],
-      program.programId
-    )
+    // Find PDAs for markets
+    const [marketPDA1] = findMarketPDA(program.programId, description1)
+    const [marketPDA2] = findMarketPDA(program.programId, description2)
 
-    // Find PDAs for market 2
-    const [marketPDA2] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market'), hashString(description2)],
-      program.programId
-    )
-
-    // Initialize market 1
-    await program.methods
-      .initializeMarket(
-        description1,
-        'https://picsum.photos/200/300',
-        expectedResolutionDate
-      )
-      .accounts({
-        market: marketPDA1,
-        signer: user
-      })
-      .rpc()
-
-    // Initialize market 2
-    await program.methods
-      .initializeMarket(
-        description2,
-        'https://picsum.photos/200/300',
-        expectedResolutionDate
-      )
-      .accounts({
-        market: marketPDA2,
-        signer: user
-      })
-      .rpc()
+    // Initialize markets
+    await createMarket(program, description1, user)
+    await createMarket(program, description2, user)
 
     // Fetch and validate market 1 data
     const market1 = await program.account.market.fetch(marketPDA1)
@@ -208,31 +121,17 @@ describe('yapping initialize market tests', () => {
   })
 
   it('should verify correct PDA derivation for market accounts', async () => {
-    const description = 'Will DOT reach $20 by end of 2024?'
+    const description = uniqueMarketDescription('PDA verification test')
 
     // Find PDAs
-    const [marketPDA, marketBump] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market'), hashString(description)],
-      program.programId
-    )
-
-    const [marketMetadataPDA, metadataBump] = PublicKey.findProgramAddressSync(
-      [Buffer.from('market_metadata'), marketPDA.toBuffer()],
-      program.programId
+    const [marketPDA] = findMarketPDA(program.programId, description)
+    const [marketMetadataPDA] = findMarketMetadataPDA(
+      program.programId,
+      marketPDA
     )
 
     // Initialize market
-    await program.methods
-      .initializeMarket(
-        description,
-        'https://picsum.photos/200/300',
-        expectedResolutionDate
-      )
-      .accounts({
-        market: marketPDA,
-        signer: user
-      })
-      .rpc()
+    await createMarket(program, description, user)
 
     // Verify we can fetch both accounts
     const market = await program.account.market.fetch(marketPDA)

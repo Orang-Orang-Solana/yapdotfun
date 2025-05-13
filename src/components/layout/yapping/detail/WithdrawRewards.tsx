@@ -10,12 +10,12 @@ import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
 
-// Declare global function for TypeScript
-declare global {
-  interface Window {
-    refreshMarketChart?: (marketId: string) => void
-  }
-}
+// No need for this declaration anymore since we're using the invalidation hook
+// declare global {
+//   interface Window {
+//     refreshMarketChart?: (marketId: string) => void
+//   }
+// }
 
 interface WithdrawRewardsProps {
   marketPublicKey: string
@@ -67,17 +67,8 @@ export default function WithdrawRewards({
       transactionToast(tx)
       toast.success('Rewards withdrawn successfully!')
 
-      // Trigger UI updates by dispatching a custom event
-      window.dispatchEvent(
-        new CustomEvent('market-update', {
-          detail: { marketId: marketPublicKey }
-        })
-      )
-
-      // Also try to use the global refresh function if available
-      if (window.refreshMarketChart) {
-        window.refreshMarketChart(marketPublicKey)
-      }
+      // No need to manually dispatch events or refresh the chart anymore
+      // This is now handled by the invalidateMarketData function in our hook
     } catch (error) {
       console.error('Withdrawal error:', error)
       toast.error('Failed to withdraw rewards. Please try again.')

@@ -7,9 +7,8 @@ import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTransactionToast } from '@/components/ui/ui-layout'
-import * as anchor from '@coral-xyz/anchor'
+import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
 import { BN } from '@coral-xyz/anchor'
-import { getYappingProgram } from '@project/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
 
@@ -53,7 +52,7 @@ export default function SellShares({
   const { connected } = useWallet()
   const transactionToast = useTransactionToast()
   const provider = useAnchorProvider()
-  const program = getYappingProgram(provider)
+  const { sell } = useYappingMarketActions()
 
   // Calculate the maximum shares the user can sell
   const maxShares = userAmount ? Math.floor(userAmount / LAMPORTS_PER_SHARE) : 0
@@ -92,31 +91,10 @@ export default function SellShares({
       // Prepare market PublicKey
       const marketPDA = new PublicKey(marketPublicKey)
 
-      // Find market voter PDA
-      const [marketVoterPDA] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from('market_voter'),
-          provider.wallet.publicKey.toBuffer(),
-          marketPDA.toBuffer()
-        ],
-        program.programId
-      )
-
-      // Find market metadata PDA
-      const [marketMetadataPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from('market_metadata'), marketPDA.toBuffer()],
-        program.programId
-      )
-
-      // Use the raw RPC call (this bypasses TypeScript's type checking)
-      const tx = await program.rpc.sell(!!userVote, shares, {
-        accounts: {
-          market: marketPDA,
-          marketMetadata: marketMetadataPDA,
-          marketVoter: marketVoterPDA,
-          signer: provider.wallet.publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId
-        }
+      const tx = await sell({
+        marketPDA,
+        bet: !!userVote,
+        shares
       })
 
       // Show success message

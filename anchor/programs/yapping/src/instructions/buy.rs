@@ -84,16 +84,15 @@ pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
             .unwrap() as u64
     };
 
+    let market_metadata_account = &mut ctx.accounts.market_metadata;
     // Update market metadata based on the vote direction
     match bet {
         true => {
-            let market_metadata_account = &mut ctx.accounts.market_metadata;
             market_metadata_account.total_yes_assets += amount;
             market_metadata_account.total_yes_shares += shares;
             market_metadata_account.total_rewards += amount;
         }
         false => {
-            let market_metadata_account = &mut ctx.accounts.market_metadata;
             market_metadata_account.total_no_assets += amount;
             market_metadata_account.total_no_shares += shares;
             market_metadata_account.total_rewards += amount;
@@ -105,9 +104,9 @@ pub fn handler(ctx: Context<Buy>, bet: bool, amount: u64) -> Result<()> {
     market_voter_account.amount = amount;
     market_voter_account.vote = bet;
 
-    // Transfer SOL from the signer to the market account
+    // Transfer SOL from the signer to the market_voter account
     let from = ctx.accounts.signer.to_account_info();
-    let to = ctx.accounts.market.to_account_info();
+    let to = ctx.accounts.market_voter.to_account_info();
     let _ = crate::transfer_sol(
         ctx.accounts.system_program.to_owned(),
         from,

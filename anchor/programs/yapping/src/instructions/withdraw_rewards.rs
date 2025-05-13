@@ -1,28 +1,9 @@
 use crate::errors::YappingError;
 use crate::events::RewardsWithdrawnEvent;
 use crate::state::{Market, MarketMetadata, MarketStatus, MarketVoter};
-use crate::utils::{transfer_sol, IntoShares};
+use crate::utils::IntoShares;
+use crate::StringExt;
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::hash::hash;
-
-/// Extension trait for String to provide hashing functionality (copied from initialize_market.rs)
-trait StringExt {
-    /// Converts a string to a hashed byte array
-    fn to_hashed_bytes(&self) -> Vec<u8>;
-}
-
-impl StringExt for String {
-    /// Hashes the string using SHA-256 and returns the resulting bytes
-    ///
-    /// # Returns
-    /// * `Vec<u8>` - 32-byte hash of the string
-    fn to_hashed_bytes(&self) -> Vec<u8> {
-        let hash_value = hash(self.as_bytes());
-        let hash = hash_value.to_bytes().to_vec();
-        assert_eq!(hash.len(), 32);
-        hash
-    }
-}
 
 /// Accounts required for withdrawing rewards from a resolved market
 #[derive(Accounts)]
@@ -131,21 +112,23 @@ pub fn handler(ctx: Context<WithdrawRewards>) -> Result<()> {
     // Prepare seeds for PDA signing
     let market_seed1 = b"market";
     let market_seed2 = hashed_description.as_slice();
-    let seeds = &[market_seed1 as &[u8], market_seed2 as &[u8]];
 
     // Calculate the bump for the market PDA
     let (_, bump) = Pubkey::find_program_address(&[market_seed1, market_seed2], ctx.program_id);
 
     // Transfer rewards to the user with PDA signing
-    let from = market.to_account_info();
-    let to = ctx.accounts.user.to_account_info();
-    transfer_sol(
-        ctx.accounts.system_program.to_owned(),
-        from,
-        to,
-        rewards,
-        Some(seeds),
-        Some(bump),
+    anchor_lang::solana_program::program::invoke_signed(
+        &anchor_lang::solana_program::system_instruction::transfer(
+            &ctx.accounts.market.key(),
+            &ctx.accounts.user.key(),
+            rewards,
+        ),
+        &[
+            ctx.accounts.market.to_account_info().clone(),
+            ctx.accounts.user.to_account_info().clone(),
+            ctx.accounts.system_program.to_account_info().clone(),
+        ],
+        &[&[market_seed1, market_seed2, &[bump]]],
     )?;
 
     // Emit event for tracking reward withdrawals
