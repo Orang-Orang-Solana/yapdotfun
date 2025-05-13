@@ -6,7 +6,6 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-basic = "DL3maGWRfpBWRrgesM1AxYwfpkgRtoskW3Fxw3MbhApi"
 yapping = "k4aw18gNq8Z49MejeQoF6B8QnPqkSLehraenkVqC4be"
 
 [registry]
