@@ -12,18 +12,78 @@ import TradeYapping from '@/components/layout/yapping/detail/TradeYapping'
 import WithdrawRewards from '@/components/layout/yapping/detail/WithdrawRewards'
 import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
 import { useYappingMarketPosition } from '@/hooks/use-yapping-market-position'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
+
+// Message type for chat
+interface Message {
+  id: string
+  sender: string
+  content: string
+  timestamp: string
+}
 
 export default function YappingDetailPage() {
   const params = useParams()
   const marketId = typeof params.id === 'string' ? params.id : ''
   const { marketAccount, marketAccounts } = useYappingMarketFetchers(marketId)
-  const { positionData } = useYappingMarketPosition(marketId)
+  const { positionData, invalidatePositionData } =
+    useYappingMarketPosition(marketId)
+  const { publicKey } = useWallet()
 
   // Calculate chances based on market data
   const [chanceBetYES, setChanceBetYES] = useState(50)
   const [chanceBetNO, setChanceBetNO] = useState(50)
   const [totalLiquidity, setTotalLiquidity] = useState('0')
+
+  // Chat messages state
+  const [messages, setMessages] = useState<Message[]>([])
+  const [loadingMessages, setLoadingMessages] = useState(true)
+
+  // Fetch chat messages from API
+  useEffect(
+    function fetchMessages() {
+      let isMounted = true
+      async function getMessages() {
+        setLoadingMessages(true)
+        try {
+          const res = await fetch(
+            `/api/comments?programId=${marketId}&limit=50`
+          )
+          const data = await res.json()
+          if (isMounted && data?.data) {
+            setMessages(
+              data.data.map(
+                (msg: {
+                  id: number | string
+                  authorAddress: string
+                  content: string
+                  createdAt: string
+                }) => ({
+                  id: msg.id.toString(),
+                  sender: msg.authorAddress,
+                  content: msg.content,
+                  timestamp: msg.createdAt
+                })
+              )
+            )
+          }
+        } catch (e) {
+          // Optionally handle error
+        } finally {
+          if (isMounted) setLoadingMessages(false)
+        }
+      }
+      getMessages()
+      // Poll every 5 seconds
+      const interval = setInterval(getMessages, 5000)
+      return () => {
+        isMounted = false
+        clearInterval(interval)
+      }
+    },
+    [marketId]
+  )
 
   // Update chances only when market data changes
   useEffect(() => {
@@ -144,32 +204,16 @@ export default function YappingDetailPage() {
             </div>
           ))}
 
-        <ChatYapping messages={messages} />
+        <ChatYapping
+          messages={messages}
+          marketId={marketId}
+          userAddress={publicKey?.toBase58() || ''}
+          onMessageSent={() => {
+            // Refetch messages after sending
+            // (optional, can be handled in ChatYapping too)
+          }}
+        />
       </section>
     </main>
   )
 }
-
-// Mock data for the chat
-const messages = [
-  {
-    id: '1',
-    sender: '0x1234567890abcdef1234567890abcdef12345678',
-    content: "Hello! How's it going?",
-    timestamp: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-  },
-  {
-    id: '2',
-    sender: '0x9876543210fedcba9876543210fedcba98765432',
-    content: 'Just checking out this new dApp. Looks interesting!',
-    timestamp: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-    isCurrentUser: true
-  },
-  {
-    id: '3',
-    sender: '0x1234567890abcdef1234567890abcdef12345678',
-    content:
-      'Thanks! We just launched it yesterday. Let me know if you have any questions.',
-    timestamp: new Date(Date.now() - 900000).toISOString() // 15 minutes ago
-  }
-]

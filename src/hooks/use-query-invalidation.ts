@@ -1,5 +1,6 @@
 'use client'
 
+import { useCluster } from '@/components/cluster/cluster-data-access'
 import { useQueryClient } from '@tanstack/react-query'
 
 /**
@@ -7,28 +8,29 @@ import { useQueryClient } from '@tanstack/react-query'
  * This ensures the UI updates instantly after operations like betting, selling, etc.
  */
 export function useQueryInvalidation() {
+  const { cluster } = useCluster()
   const queryClient = useQueryClient()
 
   /**
    * Invalidates all market-related queries including charts, balances, and voter data
    * @param marketId Optional market ID to target specific market invalidation
    */
-  const invalidateMarketData = (marketId?: string) => {
+  const invalidateMarketData = async (marketId?: string) => {
     // Invalidate market-specific queries if marketId is provided
     if (marketId) {
       // Invalidate market account data
-      queryClient.refetchQueries({
-        queryKey: ['get-market-account']
+      await queryClient.invalidateQueries({
+        queryKey: ['get-market-account', { cluster }]
       })
 
       // Invalidate chart data for this specific market
-      queryClient.refetchQueries({
+      await queryClient.invalidateQueries({
         queryKey: ['chart-data', marketId]
       })
 
       // Invalidate voter data (user's bets/positions)
-      queryClient.refetchQueries({
-        queryKey: ['get-market-voter']
+      await queryClient.invalidateQueries({
+        queryKey: ['get-market-voter', { cluster }]
       })
 
       // Dispatch a custom event for components listening for market updates
@@ -44,17 +46,17 @@ export function useQueryInvalidation() {
       }
     } else {
       // Invalidate all market-related queries
-      queryClient.refetchQueries({
-        queryKey: ['get-market-accounts']
+      await queryClient.invalidateQueries({
+        queryKey: ['get-market-accounts', { cluster }]
       })
-      queryClient.refetchQueries({
-        queryKey: ['get-market-account']
+      await queryClient.invalidateQueries({
+        queryKey: ['get-market-account', { cluster }]
       })
-      queryClient.refetchQueries({
-        queryKey: ['chart-data']
+      await queryClient.invalidateQueries({
+        queryKey: ['chart-data', marketId]
       })
-      queryClient.refetchQueries({
-        queryKey: ['get-market-voter']
+      await queryClient.invalidateQueries({
+        queryKey: ['get-market-voter', { cluster }]
       })
     }
 
@@ -65,18 +67,18 @@ export function useQueryInvalidation() {
   /**
    * Invalidates all account balance-related queries
    */
-  const invalidateBalanceData = () => {
-    queryClient.refetchQueries({
-      queryKey: ['get-balance']
+  const invalidateBalanceData = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ['get-balance', { cluster }]
     })
-    queryClient.refetchQueries({
-      queryKey: ['get-signatures']
+    await queryClient.invalidateQueries({
+      queryKey: ['get-signatures', { cluster }]
     })
-    queryClient.refetchQueries({
-      queryKey: ['getTokenAccountBalance']
+    await queryClient.invalidateQueries({
+      queryKey: ['getTokenAccountBalance', { cluster }]
     })
-    queryClient.refetchQueries({
-      queryKey: ['getTokenAccounts']
+    await queryClient.invalidateQueries({
+      queryKey: ['getTokenAccounts', { cluster }]
     })
   }
 

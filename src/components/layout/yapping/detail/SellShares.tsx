@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { useCluster } from '@/components/cluster/cluster-data-access'
 import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTransactionToast } from '@/components/ui/ui-layout'
 import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
+import { useYappingMarketPosition } from '@/hooks/use-yapping-market-position'
 import { BN } from '@coral-xyz/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
@@ -54,9 +56,11 @@ export default function SellShares({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const { connected } = useWallet()
   const transactionToast = useTransactionToast()
+  const { invalidatePositionData } = useYappingMarketPosition(marketPublicKey)
   const provider = useAnchorProvider()
   const { sell } = useYappingMarketActions()
   const queryClient = useQueryClient()
+  const { cluster } = useCluster()
   // Calculate the maximum shares the user can sell
   const maxShares = userAmount ? Math.floor(userAmount / LAMPORTS_PER_SHARE) : 0
   const hasShares = maxShares > 0 && userVote !== null && userVote !== undefined
@@ -121,7 +125,11 @@ export default function SellShares({
       }
 
       // Refresh market data
-      await queryClient.refetchQueries({ queryKey: ['get-market-accounts'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['get-market-accounts', { cluster }]
+      })
+
+      invalidatePositionData()
 
       // Reset form
       setSharesToSell('')

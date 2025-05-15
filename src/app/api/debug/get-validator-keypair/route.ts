@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 // In production, you should NEVER expose validator keypairs
 export async function GET() {
   // Only serve this in development
-  if (process.env.NODE_ENV !== 'development') {
+  if (process.env.NEXT_PUBLIC_APP_ENV !== 'development') {
     return NextResponse.json(
       { error: 'This endpoint is only available in development mode' },
       { status: 403 }

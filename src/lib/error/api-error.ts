@@ -106,7 +106,7 @@ function handlePrismaError(
 
 export function handleApiError(error: unknown): NextResponse {
   // Log the error
-  console.error(`API Error: ${error}`)
+  // console.error(`API Error: ${error}`)
 
   // Early return for ApiError
   if (error instanceof ApiError) {

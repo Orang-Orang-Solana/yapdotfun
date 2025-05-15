@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import { useCluster } from '@/components/cluster/cluster-data-access'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
+import { useYappingMarketPosition } from '@/hooks/use-yapping-market-position'
 import { BN } from '@coral-xyz/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js'
@@ -36,6 +38,8 @@ export default function TradeYapping({
   const { buy } = useYappingMarketActions()
   const { connected } = useWallet()
   const queryClient = useQueryClient()
+  const { cluster } = useCluster()
+  const { invalidatePositionData } = useYappingMarketPosition(marketPublicKey)
 
   // Use a ref to track previous values to avoid unnecessary updates
   const prevAmountRef = useRef<string>('')
@@ -109,7 +113,11 @@ export default function TradeYapping({
       // This is now handled by the invalidateMarketData function in our hook
 
       // Refresh market data
-      await queryClient.refetchQueries({ queryKey: ['get-market-accounts'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['get-market-accounts', { cluster }]
+      })
+
+      invalidatePositionData()
 
       // Reset form
       setAmount('')

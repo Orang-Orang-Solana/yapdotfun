@@ -5,7 +5,7 @@ import { useAnchorProvider } from '@/components/solana/solana-provider'
 import { getYappingProgram } from '@project/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { PublicKey } from '@solana/web3.js'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 // Constant to match the backend's share calculation
 // 1,000,000 lamports per share
@@ -21,7 +21,7 @@ export function useYappingMarketPosition(marketAddress?: string) {
   const provider = useAnchorProvider()
   const program = getYappingProgram(provider)
   const { publicKey } = useWallet()
-
+  const queryClient = useQueryClient()
   const {
     data: positionData,
     isLoading,
@@ -69,10 +69,17 @@ export function useYappingMarketPosition(marketAddress?: string) {
     enabled: !!publicKey && !!marketAddress
   })
 
+  function invalidatePositionData() {
+    queryClient.invalidateQueries({
+      queryKey: ['get-market-position', { cluster, marketAddress, publicKey }]
+    })
+  }
+
   return {
     positionData,
     isLoading,
     error,
-    refetch
+    refetch,
+    invalidatePositionData
   }
 }

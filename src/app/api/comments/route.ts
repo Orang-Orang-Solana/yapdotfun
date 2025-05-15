@@ -13,6 +13,10 @@ export async function POST(request: NextRequest) {
   try {
     // Get author address from header
     const authorAddress = request.headers.get('x-user-address')
+    console.debug(
+      '[API Comments POST] Headers:',
+      Object.fromEntries(request.headers.entries())
+    )
     if (!authorAddress) {
       throw ApiError.unauthorized('User identifier missing')
     }
@@ -25,6 +29,7 @@ export async function POST(request: NextRequest) {
       throw ApiError.badRequest('Failed to parse JSON request body')
     }
     const { content, programId } = body
+    console.debug('[API Comments POST] Body:', body)
 
     // Validate input
     const trimmedContent = content?.trim()
@@ -51,6 +56,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    console.debug('[API Comments POST] Prisma result:', newComment)
     console.log(
       `[API Comments POST] Comment created for program ${trimmedProgramId}`
     )
@@ -69,6 +75,10 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
+    // console.debug(
+    //   '[API Comments GET] Query params:',
+    //   Object.fromEntries(searchParams.entries())
+    // )
 
     // Validate and get pagination parameters
     const rawPage = searchParams.get('page') || '1'
@@ -116,9 +126,13 @@ export async function GET(request: NextRequest) {
       prisma.comment.count({ where: whereClause })
     ])
 
-    console.log(
-      `[API Comments GET] Fetched ${comments.length} comments. Filter: ${JSON.stringify(whereClause)}, Page: ${page}, Limit: ${limit}`
-    )
+    // console.debug('[API Comments GET] Prisma result:', {
+    //   comments,
+    //   totalComments
+    // })
+    // console.log(
+    //   `[API Comments GET] Fetched ${comments.length} comments. Filter: ${JSON.stringify(whereClause)}, Page: ${page}, Limit: ${limit}`
+    // )
 
     // Calculate total pages
     const totalPages = Math.ceil(totalComments / limit)

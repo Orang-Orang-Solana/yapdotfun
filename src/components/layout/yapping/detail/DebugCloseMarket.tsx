@@ -30,7 +30,7 @@ export default function DebugCloseMarket({
   const transactionToast = useTransactionToast()
 
   // Only show in development mode
-  if (process.env.NODE_ENV !== 'development') {
+  if (process.env.NEXT_PUBLIC_APP_ENV !== 'development') {
     return null
   }
 

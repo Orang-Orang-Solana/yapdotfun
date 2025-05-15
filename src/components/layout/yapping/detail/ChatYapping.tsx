@@ -3,10 +3,12 @@
 import { Send } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
+import { WalletButton } from '@/components/solana/solana-provider'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useWallet } from '@solana/wallet-adapter-react'
 
 interface Message {
   id: string
@@ -15,36 +17,123 @@ interface Message {
   timestamp: string
 }
 
-export default function ChatYapping({
-  messages: initialMessages
-}: {
+interface ChatYappingProps {
   messages: Message[]
-}) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  marketId: string
+  userAddress: string
+  onMessageSent: () => void
+}
+
+export default function ChatYapping({
+  messages,
+  marketId,
+  userAddress,
+  onMessageSent
+}: ChatYappingProps) {
   const [newMessage, setNewMessage] = useState('')
+  const [sending, setSending] = useState(false)
+  const [authenticating, setAuthenticating] = useState(false)
+  const [authStatus, setAuthStatus] = useState<string>('')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { publicKey, connected, signMessage } = useWallet()
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return
-
-    const messageData: Message = {
-      id: Date.now().toString(),
-      sender: '0xadasd12312323', // Replace with actual user data
-      content: newMessage,
-      timestamp: new Date().toISOString()
+  // Check authentication status on mount and after login
+  useEffect(function checkAuth() {
+    async function fetchAuth() {
+      try {
+        const res = await fetch('/api/auth/check', { credentials: 'include' })
+        const data = await res.json()
+        setIsAuthenticated(!!data.authenticated)
+      } catch (e) {
+        setIsAuthenticated(false)
+      }
     }
+    fetchAuth()
+  }, [])
 
-    setMessages((prevMessages) => [...prevMessages, messageData])
-    setNewMessage('')
+  function handleSendMessage() {
+    if (!newMessage.trim() || !userAddress) return
+    setSending(true)
+    fetch('/api/comments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-user-address': userAddress
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        content: newMessage,
+        programId: marketId
+      })
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setNewMessage('')
+        onMessageSent()
+      })
+      .catch((err) => {
+        // Optionally handle error
+        console.error('Error sending message:', err)
+      })
+      .finally(() => {
+        setSending(false)
+      })
+  }
+
+  async function handleLogin() {
+    if (!publicKey || !connected || !signMessage) return
+    setAuthenticating(true)
+    setAuthStatus('Getting nonce...')
+    try {
+      // 1. Get nonce from the server
+      const walletAddress = publicKey.toBase58()
+      const nonceResponse = await fetch(
+        `/api/auth/nonce?address=${walletAddress}`
+      )
+      const { data } = await nonceResponse.json()
+      if (!data?.nonce) throw new Error('Failed to get nonce from server')
+      // 2. Prepare and sign the challenge
+      const challenge = { address: walletAddress, nonce: data.nonce }
+      const challengeString = JSON.stringify(challenge)
+      const encodedMessage = new TextEncoder().encode(challengeString)
+      setAuthStatus('Signing message...')
+      const signature = await signMessage(encodedMessage)
+      // 3. Send signature to server for verification
+      setAuthStatus('Verifying signature...')
+      const verifyResponse = await fetch(
+        `/api/auth/login?address=${walletAddress}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ signature })
+        }
+      )
+      const result = await verifyResponse.json()
+      if (result.success) {
+        setAuthStatus('Authentication successful!')
+        setIsAuthenticated(true)
+      } else {
+        setAuthStatus(
+          `Authentication failed: ${result.message || 'Unknown error'}`
+        )
+        setIsAuthenticated(false)
+      }
+    } catch (error: unknown) {
+      setAuthStatus(
+        `Authentication error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
+      setIsAuthenticated(false)
+    } finally {
+      setAuthenticating(false)
+    }
   }
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
   useEffect(() => {
-    scrollToBottom()
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages])
 
   return (
@@ -79,20 +168,46 @@ export default function ChatYapping({
 
       <div className="p-4 border-t">
         <div className="flex gap-2 max-w-3xl mx-auto">
-          <Input
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            className="flex-1"
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={!newMessage.trim()}
-            size={'icon'}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Input
+                placeholder="Type a message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                className="flex-1"
+                disabled={sending}
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!newMessage.trim() || sending}
+                size={'icon'}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </>
+          ) : connected && publicKey ? (
+            <div className="flex flex-col w-full items-center justify-center">
+              <span className="mb-2 text-muted-foreground text-sm">
+                Login to chat
+              </span>
+              <Button onClick={handleLogin} disabled={authenticating}>
+                {authenticating ? 'Logging in...' : 'Login'}
+              </Button>
+              {authStatus && (
+                <span className="mt-2 text-xs text-muted-foreground">
+                  {authStatus}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col w-full items-center justify-center">
+              <span className="mb-2 text-muted-foreground text-sm">
+                Connect wallet to chat
+              </span>
+              <WalletButton />
+            </div>
+          )}
         </div>
       </div>
     </div>

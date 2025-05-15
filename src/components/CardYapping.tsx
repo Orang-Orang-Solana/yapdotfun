@@ -23,16 +23,19 @@ import {
 } from '@/components/ui/dialog'
 import { useYappingMarketActions } from '@/hooks/use-yapping-market-actions'
 import { useYappingMarketFetchers } from '@/hooks/use-yapping-market-fetchers'
+import { useYappingMarketPosition } from '@/hooks/use-yapping-market-position'
 import { BN } from '@coral-xyz/anchor'
 import { useWallet } from '@solana/wallet-adapter-react'
 import { LAMPORTS_PER_SOL, type PublicKey } from '@solana/web3.js'
 import { useQueryClient } from '@tanstack/react-query'
 
+import { useCluster } from './cluster/cluster-data-access'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 
 export default function CardYapping() {
-  const { marketAccounts, program } = useYappingMarketFetchers()
+  const { marketAccounts } = useYappingMarketFetchers()
+  const { cluster } = useCluster()
   const queryClient = useQueryClient()
   const { buy } = useYappingMarketActions()
   const { connected } = useWallet()
@@ -42,6 +45,9 @@ export default function CardYapping() {
   const [selectedMarket, setSelectedMarket] = useState<PublicKey | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [dialogOpen, setDialogOpen] = useState<boolean>(false)
+  const { invalidatePositionData } = useYappingMarketPosition(
+    selectedMarket?.toBase58() ?? undefined
+  )
 
   function chooseBetting(bet: number, marketPublicKey: PublicKey) {
     setBetting(bet)
@@ -79,7 +85,11 @@ export default function CardYapping() {
       setSelectedMarket(null)
 
       // Refresh market data
-      await queryClient.refetchQueries({ queryKey: ['get-market-accounts'] })
+      await queryClient.invalidateQueries({
+        queryKey: ['get-market-accounts', { cluster }]
+      })
+
+      invalidatePositionData()
     } catch (error) {
       console.error('Betting error:', error)
       toast.error('Failed to place bet. Please try again.')

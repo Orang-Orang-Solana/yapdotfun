@@ -175,7 +175,7 @@ export function ChartYapping({
     const handleMarketUpdate = (event: CustomEvent) => {
       if (event.detail?.marketId === marketPublicKey) {
         // Immediately invalidate the query to trigger a refetch
-        queryClient.refetchQueries({
+        queryClient.invalidateQueries({
           queryKey: [CHART_DATA_QUERY_KEY, marketPublicKey]
         })
       }
